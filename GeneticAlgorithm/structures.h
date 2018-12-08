@@ -11,13 +11,18 @@ typedef struct Configuration {
 	char **intervals;
 } environment;
 
-typedef struct Jedinec {
-	char *gene;
-	int fitness;
-	struct Jedinec *next;
-	struct Jedinec *previous;
-} jedinec;
 
+typedef union Data {
+   int binary;
+   float real;
+} gene;
+
+typedef struct Creature {
+	gene *gene;
+	int fitness;
+	struct Creature *next;
+	struct Creature *previous;
+} jedinec;
 
 
 #endif

@@ -10,20 +10,24 @@
 void get_environment(char* file_name, environment **env) {
 
   char *executable;
-	char *parameters;
+  char *parameters;
   char **intervals;
   char **new_intervals;
 	int param_count = 0;
 	char *konstanta;
-	char *type;
+	char type[1];
 	char *interval;
   int INTERVAL_SIZE = 30;
   int i;
 
     FILE * file_pointer;
-    char * line = NULL;
+    char * line;
+    line[0] = '\0';
     size_t len = 0;
     ssize_t read;
+    parameters = malloc(sizeof(char));
+    parameters[0] = '\0';
+
 
     file_pointer = fopen(file_name, "r");
     if (file_pointer == NULL) {
@@ -33,13 +37,19 @@ void get_environment(char* file_name, environment **env) {
 
     while ((read = getline(&line, &len, file_pointer)) != -1) {
 
+      if (strlen(line) <= 2) {
+          continue;
+      }
+
       new_intervals = (char**)calloc(param_count, param_count * sizeof(char *));
       for (i = 0; i < param_count; i++) {
         new_intervals[i] = malloc(strlen(intervals[i]) * sizeof(char) + 1);
         new_intervals[i][0] = '\0';
         strcpy(new_intervals[i], intervals[i]);
       }
+
       intervals = new_intervals;
+
 
     	if (line[0] != '#') {
 
@@ -50,16 +60,22 @@ void get_environment(char* file_name, environment **env) {
     	} else {
     	// file or variable
 
-      if (strstr(line,  "#_(") != NULL) {
-    		// variable
+        if (strstr(line,  "#_(") != NULL) {
+      		// variable
+      			store_variable_from_line(line, interval, type);
 
-    			store_variable_from_line(line, interval, type);
-	    		append_string(&parameters, type);
-          intervals[param_count] = "";
-	    		append_string(intervals + param_count, interval);
-          printf("\n parameters = %s\n", intervals[param_count]);
+            // size_t sajz = (strlen(parameters) + strlen(type)) * sizeof(char);
+            parameters = (char *) realloc(parameters, (strlen(parameters) + 2) * sizeof(char));
+            // printf("\n Type = %s\n", type);
+  	    		append_string(&parameters, type);
 
-    			param_count++;
+            // printf("\n Parameters = %s\n", parameters);
+            intervals[param_count] = "\0";
+  	    		append_string(intervals + param_count, interval);
+            interval[0] = '\0';
+            // printf("\n Interval = %s\n", intervals[param_count]);
+
+      			param_count++;
 
     		} else {
     		// file
@@ -70,8 +86,9 @@ void get_environment(char* file_name, environment **env) {
     	}
 
 
-        printf("Retrieved line of length %zu :\n", read);
-        printf("%s", line);
+
+        // printf("Retrieved line of length %zu \n", read);
+        // printf("%s\n", line);
 
 
 
@@ -79,10 +96,12 @@ void get_environment(char* file_name, environment **env) {
 
     *env = malloc(sizeof(environment));
     // (*env)->parameters = malloc(strlen(parameters)*sizeof(char *));
+
     (*env)->parameters = strdup(parameters);
     (*env)->count_of_parameters = param_count;
     // (*env)->intervals = malloc(strlen(intervals)*sizeof(char *));
-    (*env)->intervals  = intervals;
+    (*env)->intervals  = realloc(intervals, sizeof(intervals));
+
     // (*env)->executable = malloc(strlen(executable)*sizeof(char *));
     (*env)->executable = strdup(executable);
     (*env)->meta_data_file = strdup(file_name);
@@ -91,28 +110,23 @@ void get_environment(char* file_name, environment **env) {
     if (line){
         free(line);
         free(parameters);
-        free(intervals);
         free(executable);
     }
-}
-int is_valid_value(char type, char *interval, char *value){
-    int from_int, to_int, val_int;
-    float from_real, to_real, val_real;
 
-    switch(type) {
-      case VARIABLE_TYPE_INTEGER:
-          from_int = atoi(strtok(interval, ","));
-          to_int = atoi(strtok(interval, ","));
-          val_int = atoi(value);
-          return (from_int < val_int && val_int < to_int);
-          break;
-      case VARIABLE_TYPE_REAL:
-          from_real = atoi(strtok(interval, ","));
-          to_real = atoi(strtok(interval, ","));
-          val_real = atof(value);
-          return (from_real < val_real && val_real < to_real);
-          break;
-    }
+
+}
+
+int is_valid_int(char *interval, int value){
+  int from, to;
+  sscanf(interval, "%d,%d", &from, &to);
+  return (from < value && value < to);
+
+}
+
+int is_valid_float(char *interval, float value){
+  float from, to;
+  sscanf(interval, "%f,%f", &from, &to);
+  return (from < value && value < to);
 }
 
 
@@ -124,7 +138,6 @@ int BUFFER_SIZE = 200;
 int i;
 char buffer[BUFFER_SIZE];
 char newline[BUFFER_SIZE];
-char *gene = creature->gene; //strcpy TODO
 
 /*  Open all required files */
 fPtr  = fopen(env->meta_data_file, "r");
@@ -148,35 +161,63 @@ int variable_count = 0;
 char type;
 char *interval;
 char *value;
+char *variable_name = malloc(10 * sizeof(char));
+char *tmp = malloc(100 * sizeof(char));
+int is_valid;
+
 while ((fgets(buffer, BUFFER_SIZE, fPtr)) != NULL)
 {
+
     /* If current line is line to replace */
     if (buffer[0] == '#' && buffer[2] == '(') {
       variable_flag = 1;
+
 
     } else if(variable_flag == 1 && buffer[0] != '#') {
       //overwrite
       type = env->parameters[variable_count];
       interval = env->intervals[variable_count];
 
-      char *variable_name = strtok(buffer, " = ");
-      value = strtok(gene, ";");
+      sscanf(buffer, "%s = %s", variable_name, tmp);
+      free(tmp);
 
-      int is_valid = is_valid_value(type, interval, value);
+      if (type == VARIABLE_TYPE_INTEGER) {
+        is_valid = is_valid_int(interval, creature->gene[variable_count].binary);
+
+      } else if (type == VARIABLE_TYPE_REAL) {
+        is_valid = is_valid_float(interval, creature->gene[variable_count].real);
+
+      }
+
 
       if (!is_valid) {
           exit;
       }
+      printf("\nDeeeeebiiiil\n");
+      printf("vypis:  %s \n", newline);
 
-      strcpy(newline, variable_name);
-      strcpy(newline, " = ");
-      strcpy(newline, value);
+      newLine = malloc((strlen(variable_name) + 3 + ));
+
+      if (type == VARIABLE_TYPE_INTEGER) {
+        strcpy(newline, variable_name);
+        strcpy(newline, " = ");
+        strcpy(newline, creature->gene[variable_count].binary); // TODO sprintf instead of strcpy
+
+      } else if (type == VARIABLE_TYPE_REAL) {
+        strcpy(newline, variable_name);
+        strcpy(newline, " = ");
+        strcpy(newline, creature->gene[variable_count].real);
+
+      }
+
+
 
       fputs(newline, fTemp);
       variable_count++;
       variable_flag = 0;
     }
     else {
+
       fputs(buffer, fTemp);
       variable_flag = 0;
     }
@@ -200,47 +241,36 @@ printf("\nSuccessfully replaced file");
 
 
 void store_const_from_line(char *line, char **konstanta) {
-    **konstanta = *line;
+  *konstanta = malloc(strlen(line - 4));
+  *konstanta = line + 4;
 }
 
 void store_variable_from_line(char *line, char *interval, char *type) {
 
-    char * interval_local = strtok(line, ";");
-    char *type_token = strtok(0, ";");
-    *type = type_token[0];
-    char *result;
+    float from_real, to_real;
+    int from_int, to_int;
 
-    strtok(interval_local, "(");// get #_ out
-    char * num_interval = strtok(interval_local, ")");
+    sscanf( line, "#_(%f,%f);%c", &from_real, &to_real, type );
 
-    if (*type_token == VARIABLE_TYPE_INTEGER) {
-        int from = atoi(strtok(num_interval, ","));
-        int to = atoi(strtok(num_interval, ","));
-        result = "%d,%d";
-        sprintf(interval, result, from, to);
+    if (*type == VARIABLE_TYPE_INTEGER) {
+        sscanf( line, "#_(%d,%d);Z", &from_int, &to_int );
+        sprintf(interval, "%d,%d", from_int, to_int);
 
-    } else if (*type_token == VARIABLE_TYPE_REAL) {
-
-        float from = atof(strtok(num_interval, ","));
-
-        float to = atof(strtok(num_interval, ","));
-        result = "%f,%f";
-        sprintf(interval, result, from, to);
-
-
+    } else if (*type == VARIABLE_TYPE_REAL) {
+        sprintf(interval, "%f,%f", from_real, to_real);
     } else {
-        printf("Unknown variale");
+        printf("Unknown variale\n");
     }
+
 
 }
 
 
 void append_string(char **text, char *appended_string) {
-  printf("\n bitch \n");
 
   // printf("\n strlen(*text) = %ld\n", strlen(*text));
-  printf("\n strlen(*text) = %s\n", *text);
-  printf("\n bitch \n");
+  // printf("\n text = %s\n", *text);
+  // printf("\n appended_string = %s\n", appended_string);
 
 
     char * result ;

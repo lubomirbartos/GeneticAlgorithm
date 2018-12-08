@@ -11,6 +11,7 @@ void store_variable_from_line(char *line, char *interval, char *type);
 void append_string(char **text, char *appended_string);
 char *get_binary_from_int(int n);
 void write_creature_metadata(jedinec *creature, environment *env);
+int is_valid_value(char type, char *interval, gene value);
 
 
 #endif
