@@ -24,9 +24,12 @@ void write_to_file() {
 void evolve(jedinec *population, int *population_count, int mutation_percentage, environment *env) {
     float results[*population_count];
     int i;
+    jedinec *population_pointer = population;
 
     for(i = 0; i < *population_count; i++) {
-        test_creature(population + i, &results[i], env);
+
+        test_creature(population_pointer, &results[i], env);
+        population_pointer = population_pointer->next;
     }
 
     dying_time(population, population_count); //die before you fuck you weakling
@@ -38,11 +41,11 @@ void evolve(jedinec *population, int *population_count, int mutation_percentage,
 // int mutation_percentage - mutation percentage
 void life(int count_of_generations, int mutation_percentage, environment *env) {
 
-	int generation_number;
-	int population_count = 10;
-    jedinec population[population_count];
+  	int generation_number;
+  	int population_count = 10;
+    jedinec *population;
 
-    create_initial_population(population, population_count, env);
+    create_initial_population(&population, population_count, env);
 
 	for ( generation_number = 0 ; generation_number < count_of_generations ; generation_number++ ) {
 		evolve(population, &population_count, mutation_percentage, env);
@@ -56,9 +59,11 @@ int main(int argc, char *argv[]) {
     char *meta_data_file;
     environment *env;
 
-	handle_cmd_arguments(argc, argv, &meta_data_file, &count_of_generations, &mutation_percentage);
+
+  	handle_cmd_arguments(argc, argv, &meta_data_file, &count_of_generations, &mutation_percentage);
     get_environment(meta_data_file, &env);
-	life(count_of_generations, mutation_percentage, env);
+
+  	life(count_of_generations, mutation_percentage, env);
 
     return 0;
 }
