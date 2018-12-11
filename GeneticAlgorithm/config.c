@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "structures.h"
 #include "jedinec.h"
 #include "config.h"
@@ -19,6 +20,7 @@ void get_environment(char* file_name, environment **env) {
 	char *interval;
   int INTERVAL_SIZE = 30;
   int i;
+  srand(time(NULL));
 
     FILE * file_pointer;
     char * line;
@@ -160,6 +162,7 @@ int variable_flag = 0;
 int variable_count = 0;
 char type;
 char *interval;
+char * newLine;
 char *value;
 char *variable_name = malloc(10 * sizeof(char));
 char *tmp = malloc(100 * sizeof(char));
@@ -170,6 +173,7 @@ while ((fgets(buffer, BUFFER_SIZE, fPtr)) != NULL)
 
     /* If current line is line to replace */
     if (buffer[0] == '#' && buffer[2] == '(') {
+      fputs(buffer, fTemp);
       variable_flag = 1;
 
 
@@ -189,35 +193,26 @@ while ((fgets(buffer, BUFFER_SIZE, fPtr)) != NULL)
 
       }
 
-
       if (!is_valid) {
           exit;
       }
-      printf("\nDeeeeebiiiil\n");
-      printf("vypis:  %s \n", newline);
 
-      newLine = malloc((strlen(variable_name) + 3 + ));
+
+      newLine = malloc((strlen(variable_name) + 30) * sizeof(char));
 
       if (type == VARIABLE_TYPE_INTEGER) {
-        strcpy(newline, variable_name);
-        strcpy(newline, " = ");
-        strcpy(newline, creature->gene[variable_count].binary); // TODO sprintf instead of strcpy
-
+        sprintf(newline, "%s = %d\n", variable_name, creature->gene[variable_count].binary);
       } else if (type == VARIABLE_TYPE_REAL) {
-        strcpy(newline, variable_name);
-        strcpy(newline, " = ");
-        strcpy(newline, creature->gene[variable_count].real);
-
+        sprintf(newline, "%s = %f\n", variable_name, creature->gene[variable_count].real);
       }
 
-
-
       fputs(newline, fTemp);
+      free(newLine);
+      free(variable_name);
       variable_count++;
       variable_flag = 0;
     }
     else {
-
       fputs(buffer, fTemp);
       variable_flag = 0;
     }
@@ -234,9 +229,6 @@ remove(env->meta_data_file);
 
 /* Rename temporary file as original file */
 rename("replace.tmp", env->meta_data_file);
-
-printf("\nSuccessfully replaced file");
-
 }
 
 
