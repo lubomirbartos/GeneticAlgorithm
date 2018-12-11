@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
@@ -13,13 +14,23 @@ void dying_time(jedinec *population, int *population_count) {
 	int i;
 	get_average_fitness(population, population_count, &average_fitness);
 	jedinec *pointer = population;
+	jedinec *tmp;
 
-	while(pointer->next) {
+	printf("Population count before the purge: %d \n", *population_count);
+	printf("Average fintess of population:     %f \n", average_fitness);
+
+	while(pointer) {
 		if(pointer->fitness < average_fitness){
-			kill_creature(pointer, i);
+			tmp = pointer->next;
+			kill_creature(pointer);
+			(*population_count)--;
+			pointer = tmp;
+		} else {
+			pointer = pointer->next;
 		}
-		pointer = pointer->next;
 	}
+	printf("Population count after the purge:  %d \n", *population_count);
+
 }
 
 void create_initial_population(jedinec **population, int count_of_creatures, environment *env){
@@ -69,9 +80,8 @@ void create_random_gene(gene *gene, environment *env){
 
 	char *value = malloc(100);
 
-	srand(time(NULL));
-
 	for (i = 0; i < env->count_of_parameters; i++) {
+
 		r = rand();
 
 
@@ -95,31 +105,54 @@ void create_random_gene(gene *gene, environment *env){
 
 void mating_time(jedinec *population, int *population_count, int mutation_percentage, environment *env) {
 	int i;
-	int pairs[*population_count/2][2];
+	int number_of_pairs = *population_count/2;
+	int pairs[number_of_pairs][2];
 
 	//create pairs
-	for (i = 0; i < *population_count; i++) {
+	for (i = 0; i < number_of_pairs; i++) {
 		pairs[i][0] = i;
 		pairs[i][1] = *population_count - i;
 	}
 
-	for(i = 0; i < *population_count/2; i++) {
+	for(i = 0; i < number_of_pairs; i++) {
 		breed_offspring(population, pairs[i][0], pairs[i][1], env, mutation_percentage);
+		(*population_count)++;
 	}
+
 }
 
 jedinec *get_creature_by_number(jedinec *population, int index) {
 	int i;
 	jedinec *pointer_to_creature = population;
-	for (i = 0; i < index; i++) {
+
+	for (i = 1; i < index; i++) {
+
 		pointer_to_creature = pointer_to_creature->next;
 	}
 	return pointer_to_creature;
 }
 
-void kill_creature(jedinec *creature, int index) {
-	creature->next->previous = creature->previous;
-	creature->previous->next = creature->next;
+void kill_creature(jedinec *creature) {
+	int first = 0, last = 0;
+	if (!creature->next) {
+		last = 1;
+
+	}
+	if (!creature->previous) {
+		first = 1;
+	}
+
+	if (first && last) {
+		printf("Killing last creature!\n");
+	} else if (first) {
+		creature->next->previous = NULL;
+	} else if (last) {
+		creature->previous->next = NULL;
+	} else if (!first && !last) {
+		creature->previous->next = creature->next;
+		creature->next->previous = creature->previous;
+	}
+
 	free(creature);
 }
 
@@ -137,54 +170,94 @@ void test_creature(jedinec * creature, float *result, environment *env) {
     int count_of_results = 0;
     int counting_array[env->count_of_parameters];
     int i;
+		char *delete_later;
+		char path_buf[PATH_MAX + 100];
+		char * path = realpath("func", path_buf);
 
-    if ((fp = popen(creature_executable, "r")) == NULL) {
+
+    if ((fp = popen(path_buf, "r")) == NULL) {  //TODO not multiplatform
         printf("Error opening pipe!\n");
     }
 
+
     while (fgets(results[count_of_results], BUFSIZE, fp) != NULL) {
-        count_of_results++;
+				count_of_results++;
     }
+
 
     if(pclose(fp))  {
         printf("Command not found or exited with error status\n");
     }
-
     for (i = 1; i < 14 ; i++) { //from 1 because first line is "starting"
         if (i == 13) {
             *result = atof(results[i]); //this is what we want???
+						creature->fitness = *result;
+						printf("Creature fitness: %f \n", creature->fitness);
+
             continue;
         }
 
         //counting...48765 -> 48765
         counting_array[i] = atoi(results[i]+11);
-        printf("%d.: %d \n", i, counting_array[i]);
+        // printf("%d.: %d \n", i, counting_array[i]);
     }
+
+
 }
 
 // pushes new offspring to population array
 void breed_offspring(jedinec *population, int mother_index, int father_index, environment *env, int mutation_percentage){
 	int i;
-	gene *offspring_gene = calloc(env->count_of_parameters, sizeof(gene));
-	jedinec *offspring;
+
+	gene *offspring_gene = malloc(env->count_of_parameters * sizeof(gene));
+	if (!offspring_gene) {
+		printf("Calloc failed\n");
+	}
+
 	jedinec *last_creature = get_last_creature_in_list(population);
+
 	gene *father_gene = get_creature_by_number(population, father_index)->gene;
 	gene *mother_gene = get_creature_by_number(population, mother_index)->gene;
 
 	cross_gene(mother_gene, father_gene, &offspring_gene, env, mutation_percentage);
 
-	offspring = malloc(sizeof(jedinec));
-	offspring->gene = offspring_gene;
+	jedinec *pointer = population;
+	int count = 0;
+	while(pointer){
+		count++;
+		printf("Creature%d: fitness: %f\n", count, pointer->fitness);
+		pointer = pointer->next;
+	}
 
-	last_creature->next = offspring;
-	offspring->previous = last_creature;
+
+	last_creature->next = malloc(sizeof(jedinec));
+	last_creature->next->previous = last_creature;
+	last_creature->next->gene = malloc(env->count_of_parameters * sizeof(gene));
+	copy_gene(last_creature->next->gene, offspring_gene, env);
+	free(offspring_gene);
+	last_creature = NULL;
+
+}
+
+void copy_gene(gene *to, gene *from, environment *env){
+	int i;
+	for (i = 0; i < env->count_of_parameters; i++) {
+		if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
+				to[i].binary = from[i].binary;
+		} else if (env->parameters[i] == VARIABLE_TYPE_REAL) {
+			to[i].real = from[i].real;
+		}
+	}
 }
 
 jedinec *get_last_creature_in_list(jedinec *population) {
 	jedinec *pointer = population;
-	while (pointer->next != NULL) {
+
+	while (pointer->next) {
+
 		pointer = pointer->next;
 	}
+
 	return pointer;
 }
 

@@ -34,6 +34,7 @@ void evolve(jedinec *population, int *population_count, int mutation_percentage,
 
     dying_time(population, population_count); //die before you fuck you weakling
     mating_time(population, population_count, mutation_percentage, env);
+
 }
 
 //starts the evolution with given arguments
