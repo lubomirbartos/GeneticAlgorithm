@@ -14,17 +14,18 @@ void dying_time(jedinec *population, int *population_count) {
 	int i;
 	get_average_fitness(population, population_count, &average_fitness);
 	jedinec *pointer = population;
-	jedinec *tmp;
+	jedinec *weakling;
 
 	printf("Population count before the purge: %d \n", *population_count);
 	printf("Average fintess of population:     %f \n", average_fitness);
 
 	while(pointer) {
 		if(pointer->fitness < average_fitness){
-			tmp = pointer->next;
-			kill_creature(pointer);
+			weakling = pointer;
+			pointer = pointer->next;
+			kill_creature(weakling);
 			(*population_count)--;
-			pointer = tmp;
+			weakling = NULL;
 		} else {
 			pointer = pointer->next;
 		}
@@ -38,13 +39,12 @@ void create_initial_population(jedinec **population, int count_of_creatures, env
 		jedinec *creature;
     *population = create_creature(env);
     jedinec *population_last = *population;
-    jedinec *population_first = *population;
 
-    for (i = 0; i < count_of_creatures - 1; i++) {
+    for (i = 1; i < count_of_creatures; i++) {
         creature = create_creature(env);
         creature->previous = population_last;
         population_last->next = creature;
-        population_last = population_last->next;
+        population_last = creature;
     }
 
 }
@@ -105,7 +105,13 @@ void create_random_gene(gene *gene, environment *env){
 
 void mating_time(jedinec *population, int *population_count, int mutation_percentage, environment *env) {
 	int i;
-	int number_of_pairs = *population_count/2;
+	int number_of_pairs;
+
+	if ((*population_count % 2) == 0) {
+		number_of_pairs = *population_count/2;
+	} else {
+		number_of_pairs = (*population_count - 1)/2;
+	}
 	int pairs[number_of_pairs][2];
 
 	//create pairs
@@ -115,8 +121,11 @@ void mating_time(jedinec *population, int *population_count, int mutation_percen
 	}
 
 	for(i = 0; i < number_of_pairs; i++) {
+
 		breed_offspring(population, pairs[i][0], pairs[i][1], env, mutation_percentage);
+
 		(*population_count)++;
+
 	}
 
 }
@@ -148,7 +157,7 @@ void kill_creature(jedinec *creature) {
 		creature->next->previous = NULL;
 	} else if (last) {
 		creature->previous->next = NULL;
-	} else if (!first && !last) {
+	} else {
 		creature->previous->next = creature->next;
 		creature->next->previous = creature->previous;
 	}
@@ -209,6 +218,7 @@ void test_creature(jedinec * creature, float *result, environment *env) {
 void breed_offspring(jedinec *population, int mother_index, int father_index, environment *env, int mutation_percentage){
 	int i;
 
+
 	gene *offspring_gene = malloc(env->count_of_parameters * sizeof(gene));
 	if (!offspring_gene) {
 		printf("Calloc failed\n");
@@ -221,21 +231,19 @@ void breed_offspring(jedinec *population, int mother_index, int father_index, en
 
 	cross_gene(mother_gene, father_gene, &offspring_gene, env, mutation_percentage);
 
-	jedinec *pointer = population;
-	int count = 0;
-	while(pointer){
-		count++;
-		printf("Creature%d: fitness: %f\n", count, pointer->fitness);
-		pointer = pointer->next;
-	}
 
 
-	last_creature->next = malloc(sizeof(jedinec));
+
+	last_creature->next = (jedinec*) malloc(sizeof(jedinec));
 	last_creature->next->previous = last_creature;
-	last_creature->next->gene = malloc(env->count_of_parameters * sizeof(gene));
+	last_creature->next->next = NULL;
+	last_creature->next->fitness = 0xf;
+	// last_creature->next->gene = (gene*) calloc(env->count_of_parameters, sizeof(gene));
 	copy_gene(last_creature->next->gene, offspring_gene, env);
 	free(offspring_gene);
 	last_creature = NULL;
+
+
 
 }
 
@@ -263,9 +271,11 @@ jedinec *get_last_creature_in_list(jedinec *population) {
 
 
 void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, environment *env, int mutation_percentage){
-	int i, f_bin_gene, m_bin_gene;
+	int i = 0, f_bin_gene, m_bin_gene;
 	float f_real_gene, m_real_gene;
 	char parameter;
+
+
 
 	for (i = 0; i < env->count_of_parameters; i++) {
 		parameter = env->parameters[i]; // env part of gene
@@ -274,12 +284,17 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 			f_bin_gene = father_gene[i].binary;
 			m_bin_gene = mother_gene[i].binary;
  			cross_binary_and_append(f_bin_gene, m_bin_gene, (*offspring_gene) + i, mutation_percentage);
+
 		} else if (parameter == VARIABLE_TYPE_REAL){
 			f_real_gene = father_gene[i].real;
 			m_real_gene = mother_gene[i].real;
  			cross_real_and_append(f_real_gene, m_real_gene, (*offspring_gene) + i, mutation_percentage);
+
 		}
+
 	}
+	i = 0;
+
 }
 
 void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_gene_int, int mutation_percentage) {
@@ -287,17 +302,22 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 	long long bin_num;
 	char * binary_father_gene = get_binary_from_int(father_gene);
 	char * binary_mother_gene = get_binary_from_int(mother_gene);
+
 	char *offspring_gene_binary = malloc(sizeof(char) * strlen(binary_father_gene));
 	int length = strlen(binary_father_gene)-1;
 	int half = length/2;
 	for (i = 0; i < half; i++) {
-		offspring_gene_binary[i] = binary_father_gene[i];
+		offspring_gene_binary[i] = binary_mother_gene[i];
 		offspring_gene_binary[length - i] = binary_father_gene[length - i];
 	}
+	printf("PP as big as universe %d\n", offspring_gene_binary);
 
-	sscanf(offspring_gene_binary, "%lld", &bin_num);
+	sprintf(offspring_gene_binary, "%lld", bin_num);
 
 	offspring_gene_int->binary = get_int_from_binary(bin_num);
+	free(binary_father_gene);
+	free(binary_mother_gene);
+	free(offspring_gene_binary);
 }
 
 void cross_real_and_append(float father_gene, float mother_gene, gene *offspring_gene_real, int mutation_percentage) {

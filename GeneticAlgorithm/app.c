@@ -32,7 +32,7 @@ void evolve(jedinec *population, int *population_count, int mutation_percentage,
         population_pointer = population_pointer->next;
     }
 
-    dying_time(population, population_count); //die before you fuck you weakling
+    dying_time(population, population_count); //die before you fuck, weakling!
     mating_time(population, population_count, mutation_percentage, env);
 
 }
