@@ -43,7 +43,7 @@ void evolve(jedinec *population, int *population_count, int mutation_percentage,
 void life(int count_of_generations, int mutation_percentage, environment *env) {
 
   	int generation_number;
-  	int population_count = 10;
+  	int population_count = 30;
     jedinec *population;
 
     create_initial_population(&population, population_count, env);

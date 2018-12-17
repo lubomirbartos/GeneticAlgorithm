@@ -56,7 +56,7 @@ jedinec *create_creature(environment *env) {
 
 	create_random_gene(gene, env);
 
-    creature = malloc (sizeof (jedinec));
+    creature = calloc (1, sizeof (jedinec));
     if (creature == NULL){
         return NULL;
     }
@@ -78,7 +78,7 @@ void create_random_gene(gene *gene, environment *env){
 	char *from, *to, *interval_space;
 	float from_real, to_real;
 
-	char *value = malloc(100);
+	char *value = calloc(1, 100 * sizeof(char));
 
 	for (i = 0; i < env->count_of_parameters; i++) {
 
@@ -106,6 +106,8 @@ void create_random_gene(gene *gene, environment *env){
 void mating_time(jedinec *population, int *population_count, int mutation_percentage, environment *env) {
 	int i;
 	int number_of_pairs;
+	int random_mother;
+	int random_father;
 
 	if ((*population_count % 2) == 0) {
 		number_of_pairs = *population_count/2;
@@ -125,6 +127,16 @@ void mating_time(jedinec *population, int *population_count, int mutation_percen
 		breed_offspring(population, pairs[i][0], pairs[i][1], env, mutation_percentage);
 
 		(*population_count)++;
+
+	}
+
+
+
+	while (*population_count < 30) {
+
+		random_mother = rand() % *population_count;
+		random_father = rand() % *population_count;
+
 
 	}
 
@@ -281,15 +293,14 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 		parameter = env->parameters[i]; // env part of gene
 
 		if (parameter == VARIABLE_TYPE_INTEGER) {
+
 			f_bin_gene = father_gene[i].binary;
 			m_bin_gene = mother_gene[i].binary;
  			cross_binary_and_append(f_bin_gene, m_bin_gene, (*offspring_gene) + i, mutation_percentage);
-
 		} else if (parameter == VARIABLE_TYPE_REAL){
 			f_real_gene = father_gene[i].real;
 			m_real_gene = mother_gene[i].real;
  			cross_real_and_append(f_real_gene, m_real_gene, (*offspring_gene) + i, mutation_percentage);
-
 		}
 
 	}
@@ -297,24 +308,53 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 
 }
 
-void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_gene_int, int mutation_percentage) {
+void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_gene, int mutation_percentage) {
 	int i;
 	long long bin_num;
-	char * binary_father_gene = get_binary_from_int(father_gene);
-	char * binary_mother_gene = get_binary_from_int(mother_gene);
 
-	char *offspring_gene_binary = malloc(sizeof(char) * strlen(binary_father_gene));
-	int length = strlen(binary_father_gene)-1;
-	int half = length/2;
-	for (i = 0; i < half; i++) {
-		offspring_gene_binary[i] = binary_mother_gene[i];
-		offspring_gene_binary[length - i] = binary_father_gene[length - i];
+	char * binary_father_gene;
+	char * binary_mother_gene;
+	get_binary_from_int(father_gene, &binary_father_gene);
+	get_binary_from_int(mother_gene, &binary_mother_gene);
+
+	// if one of parents has genetic
+	// if (!mother_gene) {
+	// 	mother_gene = father_gene;
+	// }
+	int size = sizeof(char) * strlen(binary_father_gene) + 1;
+	char *offspring_gene_binary = malloc(size);
+	offspring_gene_binary[size] = '\0';
+	// printf("PP as big as universe %d\n", nbits);
+
+	int length = strlen(binary_father_gene);
+	int gene_switch;
+
+	gene_switch = 0;
+
+	while(1){
+		for (i = 0; i < length; i++) {
+			if (gene_switch == 0) {
+				offspring_gene_binary[i] = binary_mother_gene[i];
+				gene_switch = 1;
+			} else {
+				offspring_gene_binary[i] = binary_father_gene[i];
+				gene_switch = 0;
+			}
+		}
+		sscanf(offspring_gene_binary, "%lld", &bin_num);
+		if (bin_num != 0) {
+			break;
+		} else {
+			gene_switch = 1; // try switching even/odd gene picking
+			continue;
+		}
 	}
-	printf("PP as big as universe %d\n", offspring_gene_binary);
 
-	sprintf(offspring_gene_binary, "%lld", bin_num);
 
-	offspring_gene_int->binary = get_int_from_binary(bin_num);
+
+
+	offspring_gene->binary = get_int_from_binary(bin_num);
+
 	free(binary_father_gene);
 	free(binary_mother_gene);
 	free(offspring_gene_binary);

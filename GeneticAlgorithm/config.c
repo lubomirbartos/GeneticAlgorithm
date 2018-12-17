@@ -284,20 +284,21 @@ void append_string(char **text, char *appended_string) {
     }
 }
 
-char *get_binary_from_int(int n) {
+void get_binary_from_int(int n, char ** result) {
     unsigned int u, mask;
     int nbits, i;
-    char *s;
 
     // determine the number of bits needed ("sizeof" returns bytes)
     nbits = sizeof(n) * 8;
-    s = malloc(nbits+1);
-    s[nbits] = '\0';
+    (*result) = calloc(1, nbits+1);
+    (*result)[nbits] = '\0';
 
     u = *(unsigned int*)&n;
 
     mask = 1 << (nbits-1); // fill in values right-to-left
     for (i = 0; i < nbits; i++, mask >>= 1)
-        s[i] = ((u & mask) != 0) + '0';
-    return s;
+        (*result)[i] = ((u & mask) != 0) + '0';
+
+    // result = NULL;
+
 }
