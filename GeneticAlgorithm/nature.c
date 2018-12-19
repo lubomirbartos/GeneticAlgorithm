@@ -75,10 +75,8 @@ jedinec *create_creature(environment *env) {
 void create_random_gene(gene *gene, environment *env){
 
 	int i, r, number_in_interval, from_int, to_int;
-	char *from, *to, *interval_space;
 	float from_real, to_real;
 
-	char *value = calloc(1, 100 * sizeof(char));
 
 	for (i = 0; i < env->count_of_parameters; i++) {
 
@@ -99,44 +97,58 @@ void create_random_gene(gene *gene, environment *env){
 		}
 	}
 
-	free(value);
 }
 
 
 void mating_time(jedinec *population, int *population_count, int mutation_percentage, environment *env) {
-	int i;
-	int number_of_pairs;
-	int random_mother;
-	int random_father;
+	// int i;
+	// int number_of_pairs;
+	int random_mother = 0;
+	int random_father = 0;
 
-	if ((*population_count % 2) == 0) {
-		number_of_pairs = *population_count/2;
-	} else {
-		number_of_pairs = (*population_count - 1)/2;
-	}
-	int pairs[number_of_pairs][2];
-
-	//create pairs
-	for (i = 0; i < number_of_pairs; i++) {
-		pairs[i][0] = i;
-		pairs[i][1] = *population_count - i;
-	}
-
-	for(i = 0; i < number_of_pairs; i++) {
-
-		breed_offspring(population, pairs[i][0], pairs[i][1], env, mutation_percentage);
-
-		(*population_count)++;
-
-	}
+	// if ((*population_count % 2) == 0) {
+	// 	number_of_pairs = *population_count/2;
+	// } else {
+	// 	number_of_pairs = (*population_count - 1)/2;
+	// }
+	// int pairs[number_of_pairs][2];
+	//
+	// //create pairs
+	// for (i = 0; i < number_of_pairs; i++) {
+	// 	pairs[i][0] = i;
+	// 	pairs[i][1] = *population_count - i;
+	// }
+	//
+	// for(i = 0; i < number_of_pairs; i++) {
+	//
+	// 	breed_offspring(population, pairs[i][0], pairs[i][1], env, mutation_percentage);
+	//
+	// 	(*population_count)++;
+	//
+	// }
 
 
 
 	while (*population_count < 30) {
+		printf("DEBUG:     %d \n", *population_count);
 
-		random_mother = rand() % *population_count;
-		random_father = rand() % *population_count;
+		random_father = rand();
+		random_father %= *population_count;
+		random_mother = rand();
+		random_mother %= *population_count;
 
+
+		while (random_mother == random_father) {
+			random_father = rand();
+			random_father %= *population_count;
+			random_mother = rand();
+			random_mother %= *population_count;
+
+		}
+
+		breed_offspring(population, random_father, random_mother, env, mutation_percentage);
+
+		(*population_count)++;
 
 	}
 
@@ -173,7 +185,7 @@ void kill_creature(jedinec *creature) {
 		creature->previous->next = creature->next;
 		creature->next->previous = creature->previous;
 	}
-
+	free(creature->gene);
 	free(creature);
 }
 
@@ -228,7 +240,7 @@ void test_creature(jedinec * creature, float *result, environment *env) {
 
 // pushes new offspring to population array
 void breed_offspring(jedinec *population, int mother_index, int father_index, environment *env, int mutation_percentage){
-	int i;
+	// int i;
 
 
 	gene *offspring_gene = malloc(env->count_of_parameters * sizeof(gene));
@@ -249,9 +261,10 @@ void breed_offspring(jedinec *population, int mother_index, int father_index, en
 	last_creature->next = (jedinec*) malloc(sizeof(jedinec));
 	last_creature->next->previous = last_creature;
 	last_creature->next->next = NULL;
-	last_creature->next->fitness = 0xf;
-	// last_creature->next->gene = (gene*) calloc(env->count_of_parameters, sizeof(gene));
+	last_creature->next->fitness = 0;
+	last_creature->next->gene = malloc(env->count_of_parameters * sizeof(gene));
 	copy_gene(last_creature->next->gene, offspring_gene, env);
+
 	free(offspring_gene);
 	last_creature = NULL;
 
@@ -279,6 +292,17 @@ jedinec *get_last_creature_in_list(jedinec *population) {
 	}
 
 	return pointer;
+}
+
+void kill_all(jedinec *population) {
+	jedinec *pointer = population;
+	jedinec *creature;
+
+	while (pointer->next) {
+		creature = pointer;
+		pointer = pointer->next;
+		kill_creature(creature);
+	}
 }
 
 
@@ -312,8 +336,8 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 	int i;
 	long long bin_num;
 
-	char * binary_father_gene;
-	char * binary_mother_gene;
+	char * binary_father_gene = NULL;
+	char * binary_mother_gene = NULL;
 	get_binary_from_int(father_gene, &binary_father_gene);
 	get_binary_from_int(mother_gene, &binary_mother_gene);
 

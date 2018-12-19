@@ -42,9 +42,11 @@ void get_environment(char* file_name, environment **env) {
       if (strlen(line) <= 2) {
           continue;
       }
+      free(new_intervals);
 
-      new_intervals = (char**)calloc(param_count, param_count * sizeof(char *));
+      new_intervals = (char**)calloc(param_count, sizeof(char *));
       for (i = 0; i < param_count; i++) {
+        free(new_intervals[i]);
         new_intervals[i] = malloc(strlen(intervals[i]) * sizeof(char) + 1);
         new_intervals[i][0] = '\0';
         strcpy(new_intervals[i], intervals[i]);
@@ -66,16 +68,12 @@ void get_environment(char* file_name, environment **env) {
       		// variable
       			store_variable_from_line(line, interval, type);
 
-            // size_t sajz = (strlen(parameters) + strlen(type)) * sizeof(char);
             parameters = (char *) realloc(parameters, (strlen(parameters) + 2) * sizeof(char));
-            // printf("\n Type = %s\n", type);
   	    		append_string(&parameters, type);
 
-            // printf("\n Parameters = %s\n", parameters);
             intervals[param_count] = "\0";
   	    		append_string(intervals + param_count, interval);
             interval[0] = '\0';
-            // printf("\n Interval = %s\n", intervals[param_count]);
 
       			param_count++;
 
@@ -111,9 +109,9 @@ void get_environment(char* file_name, environment **env) {
     fclose(file_pointer);
     if (line){
         free(line);
-        free(parameters);
-        free(executable);
     }
+    free(executable);
+    free(parameters);
 
 
 }
@@ -266,12 +264,25 @@ void append_string(char **text, char *appended_string) {
 
 
     char * result ;
-    if((result = malloc(strlen(*text)+strlen(appended_string)+1)) != NULL){
+    int size = 1; //last char is zero
+    if (*text) {
+      size += strlen(*text);
+    }
+
+    if (appended_string) {
+      size += strlen(appended_string);
+    }
+
+    if((result = malloc(size * sizeof(char))) != NULL){
 
         result[0] = '\0';   // ensures the memory is an empty string
-        strcat(result,*text);
+        if (*text) {
+          strcat(result,*text);
+        }
 
         strcat(result,appended_string);
+          // free(*text);
+
         *text = malloc(sizeof(char) * strlen(result));
         *text[0] = '\0';   // ensures the memory is an empty string
         strcat(*text,result);
@@ -282,6 +293,7 @@ void append_string(char **text, char *appended_string) {
 
         printf("malloc failed in append_string!\n");
     }
+    free(result);
 }
 
 void get_binary_from_int(int n, char ** result) {
@@ -290,7 +302,9 @@ void get_binary_from_int(int n, char ** result) {
 
     // determine the number of bits needed ("sizeof" returns bytes)
     nbits = sizeof(n) * 8;
-    (*result) = calloc(1, nbits+1);
+    // free(*result);
+    printf("DEBUG:     %s \n", * result);
+    (*result) = malloc((nbits+1) * sizeof(char) );
     (*result)[nbits] = '\0';
 
     u = *(unsigned int*)&n;

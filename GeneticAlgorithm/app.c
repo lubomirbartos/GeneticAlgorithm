@@ -33,6 +33,7 @@ void evolve(jedinec *population, int *population_count, int mutation_percentage,
     }
 
     dying_time(population, population_count); //die before you fuck, weakling!
+
     mating_time(population, population_count, mutation_percentage, env);
 
 }
@@ -51,6 +52,8 @@ void life(int count_of_generations, int mutation_percentage, environment *env) {
 	for ( generation_number = 0 ; generation_number < count_of_generations ; generation_number++ ) {
 		evolve(population, &population_count, mutation_percentage, env);
 	}
+
+  kill_all(population);
 }
 
 int main(int argc, char *argv[]) {
@@ -65,6 +68,8 @@ int main(int argc, char *argv[]) {
     get_environment(meta_data_file, &env);
 
   	life(count_of_generations, mutation_percentage, env);
+    free(meta_data_file);
+    free(env);
 
     return 0;
 }
