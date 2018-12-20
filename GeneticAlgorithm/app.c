@@ -22,15 +22,17 @@ void write_to_file() {
 //population count se muze menit, proto ukazatel
 // evolves a population for number of generations in environment
 void evolve(jedinec *population, int *population_count, int mutation_percentage, environment *env) {
-    float results[*population_count];
     int i;
     jedinec *population_pointer = population;
 
     for(i = 0; i < *population_count; i++) {
 
-        test_creature(population_pointer, &results[i], env);
+        test_creature(population_pointer, env);
+
         population_pointer = population_pointer->next;
     }
+
+    printf("BUBUG:            population_count         %d \n", *population_count);
 
     dying_time(population, population_count); //die before you fuck, weakling!
 
@@ -50,6 +52,7 @@ void life(int count_of_generations, int mutation_percentage, environment *env) {
     create_initial_population(&population, population_count, env);
 
 	for ( generation_number = 0 ; generation_number < count_of_generations ; generation_number++ ) {
+
 		evolve(population, &population_count, mutation_percentage, env);
 	}
 

@@ -11,7 +11,7 @@ void create_random_gene(gene *gene, environment *env);
 void mating_time(jedinec *population, int *population_count, int mutation_percentage, environment *env);
 jedinec *get_creature_by_number(jedinec *population, int index);
 void kill_creature(jedinec *creature);
-void test_creature(jedinec * creature, float *result, environment *env);
+void test_creature(jedinec * creature, environment *env);
 void breed_offspring(jedinec *population, int mother_index, int father_index, environment *env, int mutation_percentage);
 jedinec *get_last_creature_in_list(jedinec *population);
 void cross_gene(gene *mother_gene, gene *father_gene, gene *offspring_gene[], environment *env, int mutation_percentage);
