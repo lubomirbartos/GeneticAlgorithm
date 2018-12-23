@@ -10,10 +10,11 @@
 //reads file with meta data and stores configuration to env
 void get_environment(char* file_name, environment **env) {
   char *executable, *parameters, **intervals, **new_intervals, type[1], *interval, *line;
-  param_count = 0, i;
+  int param_count = 0, i;
   FILE * file_pointer;
   size_t len = 0;
   ssize_t read;
+  char *new_line_char_position;
 
   parameters = malloc(sizeof(char));
   if (parameters == NULL){
@@ -22,7 +23,6 @@ void get_environment(char* file_name, environment **env) {
   }
 
   parameters[0] = '\0';
-  line[0] = '\0';
 
   srand(time(NULL));
 
@@ -37,6 +37,12 @@ void get_environment(char* file_name, environment **env) {
       continue;
     }
 
+    // for (i = 0; i < param_count; i++) //from one, we will free first with free below
+    //   free(new_intervals[i]);
+
+    // free(new_intervals);
+
+
     new_intervals = (char**)calloc(param_count, sizeof(char *));
     if (new_intervals == NULL){
       printf("Malloc failed\n");
@@ -44,7 +50,6 @@ void get_environment(char* file_name, environment **env) {
     }
 
     for (i = 0; i < param_count; i++) {
-      free(new_intervals[i]);
       new_intervals[i] = malloc(strlen(intervals[i]) * sizeof(char) + 1);
       if (new_intervals[i] == NULL){
         printf("Malloc failed\n");
@@ -79,7 +84,11 @@ void get_environment(char* file_name, environment **env) {
         param_count++;
       } else {
         // file
+
         executable = strdup(line+2); // prvni dva znaky ne TODO osetrit zda se to neposralo
+        if ((new_line_char_position=strchr(executable, '\n')) != NULL)
+            *new_line_char_position = '\0';
+
       }
     }
     free(line);
@@ -242,6 +251,7 @@ void write_creature_metadata(jedinec *creature, environment *env){
       }
 
       fputs(newline, fTemp);
+
       free(newLine);
       free(variable_name);
       variable_count++;

@@ -11,11 +11,11 @@
 
 
 // Kills creatures that have below average fitness
-void dying_time(jedinec *population, int *population_count) {
+void dying_time(jedinec **population, int *population_count) {
 	float average_fitness;
 	int i;
-	get_average_fitness(population, population_count, &average_fitness);
-	jedinec *pointer = population;
+	get_average_fitness(*population, population_count, &average_fitness);
+	jedinec *pointer = *population;
 	jedinec *weakling;
 
 	printf("Population count before the purge: %d \n", *population_count);
@@ -59,14 +59,14 @@ jedinec *create_creature(environment *env) {
 	gene *gene = calloc(env->count_of_parameters, sizeof(gene));
 	if (gene == NULL){
 		printf("Malloc failed\n");
-		return;
+		return NULL;
 	}
 
 	create_random_gene(gene, env);
 	creature = calloc (1, sizeof (jedinec));
 	if (creature == NULL){
 		printf("Malloc failed\n");
-		return;
+		return NULL;
 	}
 
 	if (creature == NULL){
@@ -100,6 +100,7 @@ void create_random_gene(gene *gene, environment *env){
 
 	for (i = 0; i < env->count_of_parameters; i++) {
 		r = rand();
+
 		sscanf(env->intervals[i], "%f,%f", &from, &to);
 		r %= (int)( to - from );
 
@@ -113,7 +114,7 @@ void create_random_gene(gene *gene, environment *env){
 
 // Creates random pairs that breed new members of population
 // Children are appended to end of list
-void mating_time(jedinec *population, int *population_count, int mutation_percentage, environment *env) {
+void mating_time(jedinec **population, int *population_count, int mutation_percentage, environment *env) {
 	int random_mother = 0, random_father = 0;
 	int last_creature_index;
 
@@ -129,7 +130,7 @@ void mating_time(jedinec *population, int *population_count, int mutation_percen
 			random_mother %= last_creature_index;
 		}
 
-		breed_offspring(population, random_father, random_mother, env, mutation_percentage);
+		breed_offspring(*population, random_father, random_mother, env, mutation_percentage);
 
 		random_mother = 0;
 		random_father = 0;
@@ -144,6 +145,7 @@ jedinec *get_creature_by_number(jedinec *population, int index) {
 	jedinec *pointer_to_creature = population;
 
 	for (i = 0; i < index; i++) {
+
 		pointer_to_creature = pointer_to_creature->next;
 	}
 
@@ -190,7 +192,8 @@ void test_creature(jedinec * creature, environment *env) {
 	char results[14][300];
 	int count_of_results = 0;
 	char path_buf[PATH_MAX + 100];
-	char * path = realpath(env->executable, path_buf);
+
+	char * path = realpath("func", path_buf); //TODO replace with env->executable
 
 	write_creature_metadata(creature, env);
 
@@ -208,6 +211,7 @@ void test_creature(jedinec * creature, environment *env) {
 
 	creature->fitness = atof(results[13]);
 	printf("Testing results: %f \n", creature->fitness);
+
 }
 
 // pushes new offspring to population list
