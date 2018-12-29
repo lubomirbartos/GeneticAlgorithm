@@ -20,6 +20,7 @@ void cross_real_and_append(float f_gene, float m_gene, gene *offspring_gene_real
 int get_int_from_binary(long long n);
 void copy_gene(gene *to, gene *from, environment *env);
 void kill_all(jedinec *population);
+void print_population(jedinec *population);
 
 
 #define VARIABLE_TYPE_INTEGER 'Z'

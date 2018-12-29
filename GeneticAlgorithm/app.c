@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include "structures.h"
@@ -28,16 +29,15 @@ void evolve(jedinec **population, int *population_count, int mutation_percentage
     for(i = 0; i < *population_count; i++) {
 
         test_creature(population_pointer, env);
-        printf("KOOOKOOOOOT \t\t\t %d      \n", *population_count);
-        // exit(0);
 
         population_pointer = population_pointer->next;
 
     }
 
-    printf("BUBUG:            population_count         %d \n", *population_count);
 
     dying_time(population, population_count); //die before you fuck, weakling!
+
+    assert(*population_count != 0);
 
     mating_time(population, population_count, mutation_percentage, env);
 

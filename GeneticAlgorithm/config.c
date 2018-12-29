@@ -32,6 +32,8 @@ void get_environment(char* file_name, environment **env) {
 
   }
 
+  line = malloc(100*sizeof(char));
+
   while ((read = getline(&line, &len, file_pointer)) != -1) {
     if (strlen(line) <= 2) {
       continue;
@@ -165,14 +167,14 @@ void write_creature_metadata(jedinec *creature, environment *env){
   /* File pointer to hold reference of input file */
   FILE * fPtr;
   FILE * fTemp;
-  int BUFFER_SIZE = 200;
+  int BUFFER_SIZE = 1000;
   int i;
   char buffer[BUFFER_SIZE];
   char newline[BUFFER_SIZE];
 
   /*  Open all required files */
   fPtr  = fopen(env->meta_data_file, "r");
-  fTemp = fopen("replace.tmp", "w");
+  fTemp = fopen("replace_tmp.txt", "w");
 
   /* fopen() return NULL if unable to open file in given mode. */
   if (fPtr == NULL || fTemp == NULL)
@@ -266,14 +268,14 @@ void write_creature_metadata(jedinec *creature, environment *env){
 
   /* Close all files to release resource */
   fclose(fPtr);
-  fclose(fTemp);
+  fclose(fTemp); // TODO malloc_consolidate error
 
 
   /* Delete original source file */
   remove(env->meta_data_file);
 
   /* Rename temporary file as original file */
-  rename("replace.tmp", env->meta_data_file);
+  rename("replace_tmp.txt", env->meta_data_file);
 }
 
 void store_variable_from_line(char *line, char *interval, char *type) {
@@ -327,7 +329,9 @@ void append_string(char **text, char *appended_string) {
 
     printf("malloc failed in append_string!\n");
   }
-  free(result);
+  if (result) {
+    free(result);
+  }
 }
 
 void get_binary_from_int(int n, char ** result) {

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <math.h>
@@ -117,11 +118,11 @@ void create_random_gene(gene *gene, environment *env){
 void mating_time(jedinec **population, int *population_count, int mutation_percentage, environment *env) {
 	int random_mother = 0, random_father = 0;
 	int last_creature_index;
+	printf(" !!!MATING!!! \n");
 
+	last_creature_index = *population_count -1; //from 0
 	while (*population_count < 30) {
-		printf("DEBUG:     %d \n", *population_count);
-
-		last_creature_index = *population_count -1; //from 0
+		printf("Current population count:     %d \n", *population_count);
 
 		while (random_mother == random_father) {
 			random_father = rand();
@@ -129,6 +130,8 @@ void mating_time(jedinec **population, int *population_count, int mutation_perce
 			random_father %= last_creature_index;
 			random_mother %= last_creature_index;
 		}
+		printf("Father:     %d \n", random_father);
+		printf("Mother:     %d \n", random_mother);
 
 		breed_offspring(*population, random_father, random_mother, env, mutation_percentage);
 
@@ -143,6 +146,7 @@ void mating_time(jedinec **population, int *population_count, int mutation_perce
 jedinec *get_creature_by_number(jedinec *population, int index) {
 	int i;
 	jedinec *pointer_to_creature = population;
+	// print_population(population);
 
 	for (i = 0; i < index; i++) {
 
@@ -152,7 +156,7 @@ jedinec *get_creature_by_number(jedinec *population, int index) {
 	return pointer_to_creature;
 }
 
-// Makes adjecent creatures point to each other and kills creature
+// Makes adjecent creatures point to each other and kills (frees) creature
 // memory clean after creature
 void kill_creature(jedinec *creature) {
 	int first = 0, last = 0;
@@ -176,8 +180,8 @@ void kill_creature(jedinec *creature) {
 		creature->next->previous = creature->previous;
 	}
 
-	creature->next = NULL;
-	creature->previous = NULL;
+	// creature->next = NULL;
+	// creature->previous = NULL;
 
 	free(creature->gene);
 	free(creature);
@@ -189,7 +193,7 @@ void kill_creature(jedinec *creature) {
 void test_creature(jedinec * creature, environment *env) {
 	int BUFSIZE = 128;
 	FILE *fp;
-	char results[14][300];
+	char result[100];
 	int count_of_results = 0;
 	char path_buf[PATH_MAX + 100];
 
@@ -201,7 +205,7 @@ void test_creature(jedinec * creature, environment *env) {
 		printf("Error opening pipe!\n");
 	}
 
-	while (fgets(results[count_of_results], BUFSIZE, fp) != NULL) {
+	while (fgets(result, BUFSIZE, fp) != NULL) {
 		count_of_results++;
 	}
 
@@ -209,7 +213,7 @@ void test_creature(jedinec * creature, environment *env) {
 		printf("Command not found or exited with error status\n");
 	}
 
-	creature->fitness = atof(results[13]);
+	creature->fitness = atof(result);
 	printf("Testing results: %f \n", creature->fitness);
 
 }
@@ -261,6 +265,19 @@ void copy_gene(gene *to, gene *from, environment *env){
 			to[i].real = from[i].real;
 		}
 	}
+}
+void print_population(jedinec *population){
+	jedinec *pointer = population;
+	int count = 0;
+	printf("Printing population \n");
+
+		do  {
+			printf("Creature number %d \n", count);
+			printf("Creature fitness %f \n", pointer->fitness);
+			printf("Creature gene real %f \n", pointer->gene[0].real);
+			printf("Creature gene binary %d \n", pointer->gene[1].binary);
+			count++;
+		} while (pointer = pointer->next);
 }
 
 // returns pointer to last creature in population
