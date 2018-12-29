@@ -4,6 +4,7 @@
 #include "structures.h"
 #include "jedinec.h"
 
+// iterates over population and counts the average population
 void get_average_fitness(jedinec *population, int *population_count, float *average_fitness){
 	float sum = 0;
 	jedinec *pointer = population;
