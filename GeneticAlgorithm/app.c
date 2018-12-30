@@ -39,8 +39,10 @@ void evolve(jedinec **population, int *population_count, int mutation_percentage
 
     assert(*population_count != 0);
     if (!last_generation) {
-      mating_time(population, population_count, mutation_percentage, env);
+      mating_time(population, population_count, env);
     }
+
+    mutate_population(*population, mutation_percentage, *population_count, env);
 
 
 }
@@ -52,6 +54,7 @@ void life(int count_of_generations, int mutation_percentage, environment *env) {
   	int generation_number;
   	int population_count = 30;
     jedinec *population;
+    jedinec *fittest;
     int last_generation = 0;
 
     create_initial_population(&population, population_count, env);
@@ -62,7 +65,8 @@ void life(int count_of_generations, int mutation_percentage, environment *env) {
     }
 
 		evolve(&population, &population_count, mutation_percentage, env, last_generation);
-	}
+    log_fittest(population, generation_number, env);
+  }
 
   kill_all(population);
 }

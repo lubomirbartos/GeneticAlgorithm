@@ -88,6 +88,7 @@ jedinec *create_creature(environment *env) {
 	}
 
 	creature->fitness = 0;
+	creature->is_alpha = 0;
 
 	return creature;
 }
@@ -121,7 +122,7 @@ void create_random_gene(gene *gene, environment *env){
 
 // Creates random pairs that breed new members of population
 // Children are appended to end of list
-void mating_time(jedinec **population, int *population_count, int mutation_percentage, environment *env) {
+void mating_time(jedinec **population, int *population_count, environment *env) {
 	int random_mother = 0, random_father = 0;
 	int last_creature_index;
 	printf(" !!!MATING!!! \n");
@@ -140,7 +141,7 @@ void mating_time(jedinec **population, int *population_count, int mutation_perce
 		// printf("Father:     %d \n", random_father);
 		// printf("Mother:     %d \n", random_mother);
 
-		breed_offspring(*population, random_father, random_mother, env, mutation_percentage);
+		breed_offspring(*population, random_father, random_mother, env);
 
 		random_mother = 0;
 		random_father = 0;
@@ -228,7 +229,7 @@ void test_creature(jedinec * creature, environment *env) {
 }
 
 // pushes new offspring to population list
-void breed_offspring(jedinec *population, int mother_index, int father_index, environment *env, int mutation_percentage){
+void breed_offspring(jedinec *population, int mother_index, int father_index, environment *env){
 
 	gene *offspring_gene = malloc(env->count_of_parameters * sizeof(gene));
 	if (!offspring_gene) {
@@ -241,7 +242,7 @@ void breed_offspring(jedinec *population, int mother_index, int father_index, en
 	gene *father_gene = get_creature_by_number(population, father_index)->gene;
 	gene *mother_gene = get_creature_by_number(population, mother_index)->gene;
 
-	cross_gene(mother_gene, father_gene, &offspring_gene, env, mutation_percentage);
+	cross_gene(mother_gene, father_gene, &offspring_gene, env);
 
 	last_creature->next = (jedinec*) malloc(sizeof(jedinec));
 	if (last_creature->next == NULL){
@@ -292,6 +293,55 @@ void print_population(jedinec *population){
 		} while (pointer = pointer->next);
 }
 
+void *log_fittest(jedinec *population,int generation_number, environment *env){
+		jedinec *pointer = population;
+		jedinec *fittest = population;
+		char log[100];
+		int i;
+
+
+		FILE * file_pointer;
+		file_pointer = fopen("fittest_creatures.txt", "a");
+		if (file_pointer == NULL)
+		{
+			/* Unable to open file hence exit */
+			printf("\nUnable to open file.\n");
+			exit(0);
+		}
+
+		do  {
+				if (pointer->fitness > fittest->fitness) {
+						fittest = pointer;
+				}
+		} while (pointer = pointer->next);
+		fittest;
+		fittest->is_alpha = 1;
+
+		sprintf(log, "--- GENERATION %d ---\n", generation_number);
+		fputs(log, file_pointer);
+		memset(log, 0, sizeof log);
+
+		sprintf(log, "%f\n", fittest->fitness);
+		fputs(log, file_pointer);
+		memset(log, 0, sizeof log);
+
+		for (i = 0; i < env->count_of_parameters; i++) {
+			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
+				sprintf(log, "%c=%d#%s;Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
+				fputs(log, file_pointer);
+				memset(log, 0, sizeof log);
+			} else {
+				sprintf(log, "%c=%f#%s;Z\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
+				fputs(log, file_pointer);
+				memset(log, 0, sizeof log);
+			}
+
+		}
+		fclose(file_pointer);
+
+}
+
+
 // returns pointer to last creature in population
 jedinec *get_last_creature_in_list(jedinec *population) {
 	jedinec *pointer = population;
@@ -323,7 +373,7 @@ void kill_all(jedinec *population) {
 }
 
 // Crosses father and mother gene according to configuration an mutates
-void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, environment *env, int mutation_percentage){
+void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, environment *env){
 	int i = 0, f_bin_gene, m_bin_gene;
 	float f_real_gene, m_real_gene;
 	char parameter;
@@ -333,11 +383,11 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 		if (parameter == VARIABLE_TYPE_INTEGER) {
 			f_bin_gene = father_gene[i].binary;
 			m_bin_gene = mother_gene[i].binary;
-			cross_binary_and_append(f_bin_gene, m_bin_gene, (*offspring_gene) + i, mutation_percentage);
+			cross_binary_and_append(f_bin_gene, m_bin_gene, (*offspring_gene) + i);
 		} else if (parameter == VARIABLE_TYPE_REAL){
 			f_real_gene = father_gene[i].real;
 			m_real_gene = mother_gene[i].real;
-			cross_real_and_append(f_real_gene, m_real_gene, (*offspring_gene) + i, mutation_percentage);
+			cross_real_and_append(f_real_gene, m_real_gene, (*offspring_gene) + i);
 		}
 	}
 	i = 0;
@@ -345,12 +395,13 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 
 // Converts int to binary representation and gets some bits from mother,
 // some from father and stores them them as integer into offspring gene
-void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_gene, int mutation_percentage) {
+void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_gene) {
 	int i;
 	long long bin_num;
 
 	char * binary_father_gene = NULL;
 	char * binary_mother_gene = NULL;
+	int mutated_gene;
 	get_binary_from_int(father_gene, &binary_father_gene);
 	get_binary_from_int(mother_gene, &binary_mother_gene);
 
@@ -389,35 +440,57 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 
 
 	offspring_gene->binary = get_int_from_binary(bin_num);
-	int mutation_diff = (int) (offspring_gene->binary * (mutation_percentage / 100));
 
-	if (rand() % 2) {
-		offspring_gene->binary += mutation_diff;
-	} else {
-		offspring_gene->binary -= mutation_diff;
-	}
 
 	free(binary_father_gene);
 	free(binary_mother_gene);
 	free(offspring_gene_binary);
 }
 
-void mutate_binary(gene *offspring_gene, int mutation_percentage){
-
+void mutate_population(jedinec *population, int mutation_percentage, int population_count, environment * env){
+	int index, i;
+	jedinec *creature;
+	int count_of_mutants = population_count / mutation_percentage;
+	for (i = 0; i < count_of_mutants; i++) {
+		index = rand() % population_count;
+		creature = get_creature_by_number(population, index);
+		if (!creature->is_alpha) {
+			mutate_creature(creature, env);
+		}
+	}
 }
 
+void mutate_creature(jedinec *creature, environment * env){
+	int i;
+	int r;
+	int binary_or_real = rand() % 2;
+	float from, to;
+
+
+	for (i = 0; i < env->count_of_parameters; i++) {
+		r = rand();
+		sscanf(env->intervals[i], "%f,%f", &from, &to);
+		r %= (int)( to - from );
+		if (binary_or_real) {
+			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
+				creature->gene[i].binary = (int)from + r;
+			}
+		} else {
+			if (env->parameters[i] == VARIABLE_TYPE_REAL) {
+				creature->gene[i].real = from + (float) r;
+			}
+		}
+	}
+}
+
+
+
 // Crosses real by getting average of father and mother
-void cross_real_and_append(float father_gene, float mother_gene, gene *offspring_gene, int mutation_percentage) {
+void cross_real_and_append(float father_gene, float mother_gene, gene *offspring_gene) {
 
 
 	offspring_gene->real = (father_gene + mother_gene) / 2;
-	float mutation_diff = (float) (offspring_gene->real * (mutation_percentage / 100));
 
-	if (rand() % 2) {
-		offspring_gene->real += mutation_diff;
-	} else {
-		offspring_gene->real -= mutation_diff;
-	}
 
 }
 

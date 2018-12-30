@@ -28,6 +28,7 @@ void get_environment(char* file_name, environment **env) {
   srand(time(NULL));
 
   file_pointer = fopen(file_name, "r");
+
   if (file_pointer == NULL) {
     exit(EXIT_FAILURE);
 
@@ -270,15 +271,19 @@ void write_creature_metadata(jedinec *creature, environment *env){
 void store_variable_from_line(char *line, char *interval, char *type) {
   float from_real, to_real;
   int from_int, to_int;
+  char * new_line_char_position;
+  if ((new_line_char_position=strchr(line, '\n')) != NULL)
+      *new_line_char_position = '\0';
+
 
   sscanf( line, "#_(%f,%f);%c", &from_real, &to_real, type );
 
   if (*type == VARIABLE_TYPE_INTEGER) {
     sscanf( line, "#_(%d,%d);Z", &from_int, &to_int );
-    sprintf(interval, "%d,%d\n", from_int, to_int);
+    sprintf(interval, "%d,%d", from_int, to_int);
 
   } else if (*type == VARIABLE_TYPE_REAL) {
-    sprintf(interval, "%f,%f\n", from_real, to_real);
+    sprintf(interval, "%f,%f", from_real, to_real);
   } else {
     printf("Unknown variale\n");
   }
