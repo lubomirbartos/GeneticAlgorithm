@@ -15,6 +15,7 @@ void get_environment(char* file_name, environment **env) {
   size_t len = 0;
   ssize_t read;
   char *new_line_char_position;
+  int interval_size = 50;
 
   parameters = malloc(sizeof(char));
   if (parameters == NULL){
@@ -32,10 +33,11 @@ void get_environment(char* file_name, environment **env) {
 
   }
 
-  line = malloc(100*sizeof(char));
+  // line = malloc(100*sizeof(char));
 
   while ((read = getline(&line, &len, file_pointer)) != -1) {
-    if (strlen(line) <= 2) {
+
+    if (line && strlen(line) <= 2) {
       continue;
     }
 
@@ -45,30 +47,47 @@ void get_environment(char* file_name, environment **env) {
     // free(new_intervals);
 
 
-    new_intervals = (char**)calloc(param_count, sizeof(char *));
-    if (new_intervals == NULL){
-      printf("Malloc failed\n");
-      return;
-    }
+    // new_intervals = (char**)calloc(param_count, sizeof(char *));
+    // if (new_intervals == NULL){
+    //   printf("Malloc failed\n");
+    //   return;
+    // }
+    //
+    // for (i = 0; i < param_count; i++) {
+    //   new_intervals[i] = malloc(strlen(intervals[i]) * sizeof(char) + 1);
+    //   if (new_intervals[i] == NULL){
+    //     printf("Malloc failed\n");
+    //     return;
+    //   }
+    //
+    //   new_intervals[i][0] = '\0';
+    //   strcpy(new_intervals[i], intervals[i]);
+    // }
 
-    for (i = 0; i < param_count; i++) {
-      new_intervals[i] = malloc(strlen(intervals[i]) * sizeof(char) + 1);
-      if (new_intervals[i] == NULL){
-        printf("Malloc failed\n");
-        return;
+    if (intervals) {
+      new_intervals = realloc(intervals, sizeof(*intervals) * (param_count+1));
+      if (new_intervals){
+        intervals = new_intervals;
+      }else {
+        printf("Realloc failed\n");
       }
+    }else {
+      new_intervals = (char**)calloc(param_count, sizeof(char *));
+      if (!new_intervals){
+        printf("Malloc failed\n");
+      }
+      intervals = new_intervals;
 
-      new_intervals[i][0] = '\0';
-      strcpy(new_intervals[i], intervals[i]);
     }
 
-    intervals = new_intervals;
+    // intervals = new_intervals;
 
     // file or variable, constants dont matter
     if (line[0] == '#') {
 
       if (strstr(line,  "#_(") != NULL) {
         // variable
+        interval = malloc(interval_size * sizeof(char));
         store_variable_from_line(line, interval, type);
 
         parameters = (char *) realloc(parameters, (strlen(parameters) + 1) * sizeof(char));
@@ -81,13 +100,14 @@ void get_environment(char* file_name, environment **env) {
 
         intervals[param_count] = "\0";
         append_string(intervals + param_count, interval);
-        interval[0] = '\0';
+        // interval[0] = '\0';
+        free(interval);
 
         param_count++;
       } else {
         // file
-
-        executable = strdup(line+2); // prvni dva znaky ne TODO osetrit zda se to neposralo
+        executable = malloc(sizeof(char) * strlen(line));
+        strcpy(executable, line+2);
         if ((new_line_char_position=strchr(executable, '\n')) != NULL)
             *new_line_char_position = '\0';
 
@@ -135,9 +155,9 @@ void get_environment(char* file_name, environment **env) {
   sprintf((*env)->meta_data_file, "%s", file_name);
 
   fclose(file_pointer);
-  if (line){
-    free(line);
-  }
+  // if (line){
+  //   free(line);
+  // }
   free(executable);
   free(parameters);
 
@@ -164,112 +184,81 @@ int is_valid_float(char *interval, float value){
 // Writes data from creatures gene into metadata file,
 // so we can evaluate the creature
 void write_creature_metadata(jedinec *creature, environment *env){
-  /* File pointer to hold reference of input file */
-  FILE * fPtr;
-  FILE * fTemp;
-  int BUFFER_SIZE = 1000;
-  int i;
-  char buffer[BUFFER_SIZE];
-  char newline[BUFFER_SIZE];
+  FILE * meta_data_file_pointer, * temporary_file_pointer;
+  int BUFFER_SIZE = 1000, i, variable_flag = 0, variable_count = 0, is_valid = 0;
+  char buffer[BUFFER_SIZE], type, interval[100], new_line[100], variable_name[20], tmp[100];
 
-  /*  Open all required files */
-  fPtr  = fopen(env->meta_data_file, "r");
-  fTemp = fopen("replace_tmp.txt", "w");
+  /*  Open both required files */
+  meta_data_file_pointer  = fopen(env->meta_data_file, "r");
+  temporary_file_pointer = fopen("replace_tmp.txt", "w");
 
   /* fopen() return NULL if unable to open file in given mode. */
-  if (fPtr == NULL || fTemp == NULL)
+  if (meta_data_file_pointer == NULL || temporary_file_pointer == NULL)
   {
     /* Unable to open file hence exit */
-    printf("\nUnable to open file.\n");
+    printf("\nUnable to open one of files.\n");
     printf("Please check whether file exists and you have read/write privilege.\n");
-    exit(EXIT_SUCCESS);
+    exit(0);
   }
 
   /*
   * Read line from source file and write to destination
-  * file after replacing given line.
+  * file after modifying given line according to creature's gene.
   */
-  int variable_flag = 0;
-  int variable_count = 0;
-  char type;
-  char *interval;
-  char * newLine;
-  char *value;
-  char *variable_name = malloc(10 * sizeof(char));
-  if (variable_name == NULL){
-    printf("Malloc failed\n");
-    return;
-  }
-
-  char *tmp = malloc(100 * sizeof(char));
-  if (tmp == NULL){
-    printf("Malloc failed\n");
-    return;
-  }
-
-  int is_valid;
-
-  while ((fgets(buffer, BUFFER_SIZE, fPtr)) != NULL)
-  {
-
+  while ((fgets(buffer, BUFFER_SIZE, meta_data_file_pointer)) != NULL) {
     /* If current line is line to replace */
     if (buffer[0] == '#' && buffer[2] == '(') {
-      fputs(buffer, fTemp);
+      fputs(buffer, temporary_file_pointer);
       variable_flag = 1;
-
-
     } else if(variable_flag == 1 && buffer[0] != '#') {
       //overwrite
       type = env->parameters[variable_count];
-      interval = env->intervals[variable_count];
+      strcpy(interval, env->intervals[variable_count]);
+
+
+      memset(tmp, 0, sizeof tmp);
+
+      memset(variable_name, 0, sizeof variable_name);
 
       sscanf(buffer, "%s = %s", variable_name, tmp);
-      free(tmp);
+      // variable_name[strlen(variable_name)] = '\0';
 
       if (type == VARIABLE_TYPE_INTEGER) {
         is_valid = is_valid_int(interval, creature->gene[variable_count].binary);
-
       } else if (type == VARIABLE_TYPE_REAL) {
         is_valid = is_valid_float(interval, creature->gene[variable_count].real);
-
       }
 
       if (!is_valid) {
         exit;
       }
 
-
-      newLine = malloc((strlen(variable_name) + 30) * sizeof(char));
-      if (newLine == NULL){
+      if (new_line == NULL){
         printf("Malloc failed\n");
         return;
       }
 
-
       if (type == VARIABLE_TYPE_INTEGER) {
-        sprintf(newline, "%s = %d\n", variable_name, creature->gene[variable_count].binary);
+        sprintf(new_line, "%s = %d\n", variable_name, creature->gene[variable_count].binary);
       } else if (type == VARIABLE_TYPE_REAL) {
-        sprintf(newline, "%s = %f\n", variable_name, creature->gene[variable_count].real);
+        sprintf(new_line, "%s = %f\n", variable_name, creature->gene[variable_count].real);
       }
 
-      fputs(newline, fTemp);
+      fputs(new_line, temporary_file_pointer);
 
-      free(newLine);
-      free(variable_name);
       variable_count++;
       variable_flag = 0;
+
     }
     else {
-      fputs(buffer, fTemp);
+      fputs(buffer, temporary_file_pointer);
       variable_flag = 0;
     }
   }
 
-
+  fclose(temporary_file_pointer); // TODO malloc_consolidate error
   /* Close all files to release resource */
-  fclose(fPtr);
-  fclose(fTemp); // TODO malloc_consolidate error
-
+  fclose(meta_data_file_pointer);
 
   /* Delete original source file */
   remove(env->meta_data_file);
@@ -286,10 +275,10 @@ void store_variable_from_line(char *line, char *interval, char *type) {
 
   if (*type == VARIABLE_TYPE_INTEGER) {
     sscanf( line, "#_(%d,%d);Z", &from_int, &to_int );
-    sprintf(interval, "%d,%d", from_int, to_int);
+    sprintf(interval, "%d,%d\n", from_int, to_int);
 
   } else if (*type == VARIABLE_TYPE_REAL) {
-    sprintf(interval, "%f,%f", from_real, to_real);
+    sprintf(interval, "%f,%f\n", from_real, to_real);
   } else {
     printf("Unknown variale\n");
   }

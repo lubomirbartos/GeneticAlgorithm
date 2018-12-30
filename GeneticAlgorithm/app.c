@@ -22,7 +22,7 @@ void write_to_file() {
 
 //population count se muze menit, proto ukazatel
 // evolves a population for number of generations in environment
-void evolve(jedinec **population, int *population_count, int mutation_percentage, environment *env) {
+void evolve(jedinec **population, int *population_count, int mutation_percentage, environment *env, int last_generation) {
     int i;
     jedinec *population_pointer = *population;
 
@@ -38,8 +38,10 @@ void evolve(jedinec **population, int *population_count, int mutation_percentage
     dying_time(population, population_count); //die before you fuck, weakling!
 
     assert(*population_count != 0);
+    if (!last_generation) {
+      mating_time(population, population_count, mutation_percentage, env);
+    }
 
-    mating_time(population, population_count, mutation_percentage, env);
 
 }
 
@@ -47,16 +49,19 @@ void evolve(jedinec **population, int *population_count, int mutation_percentage
 // int count_of_generations - count of generations
 // int mutation_percentage - mutation percentage
 void life(int count_of_generations, int mutation_percentage, environment *env) {
-
   	int generation_number;
   	int population_count = 30;
     jedinec *population;
+    int last_generation = 0;
 
     create_initial_population(&population, population_count, env);
 
 	for ( generation_number = 0 ; generation_number < count_of_generations ; generation_number++ ) {
+    if (generation_number == (count_of_generations - 1)) {
+      last_generation = 1;
+    }
 
-		evolve(&population, &population_count, mutation_percentage, env);
+		evolve(&population, &population_count, mutation_percentage, env, last_generation);
 	}
 
   kill_all(population);
@@ -74,7 +79,13 @@ int main(int argc, char *argv[]) {
     get_environment(meta_data_file, &env);
 
   	life(count_of_generations, mutation_percentage, env);
-    free(meta_data_file);
+
+    printf(" \t\t\t\t\t\t\t\t creature %d \n", mutation_percentage);
+    // free(meta_data_file);
+    free(env->executable);
+    free(env->meta_data_file);
+    free(env->parameters);
+    free(env->intervals);
     free(env);
 
     return 0;

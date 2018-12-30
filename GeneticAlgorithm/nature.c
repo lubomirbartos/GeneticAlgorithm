@@ -18,12 +18,17 @@ void dying_time(jedinec **population, int *population_count) {
 	get_average_fitness(*population, population_count, &average_fitness);
 	jedinec *pointer = *population;
 	jedinec *weakling;
+	printf(" !!!DYING!!! \n");
+
 
 	printf("Population count before the purge: %d \n", *population_count);
 	printf("Average fintess of population:     %f \n", average_fitness);
 
 	while(pointer) {
-		if(pointer->fitness < average_fitness){
+		if(pointer->fitness < average_fitness && *population_count > 10 ){
+			if (!pointer->previous) { //first member, we need to change population pointer
+				*population = pointer->next; // TODO but what if there is only one and no next?
+			}
 			weakling = pointer;
 			pointer = pointer->next;
 			kill_creature(weakling);
@@ -47,6 +52,7 @@ void create_initial_population(jedinec **population, int count_of_creatures, env
 
 	for (i = 1; i < count_of_creatures; i++) {
 		creature = create_creature(env);
+		sprintf(creature->name, "%d", i);
 		creature->previous = population_last;
 		population_last->next = creature;
 		population_last = creature;
@@ -119,10 +125,11 @@ void mating_time(jedinec **population, int *population_count, int mutation_perce
 	int random_mother = 0, random_father = 0;
 	int last_creature_index;
 	printf(" !!!MATING!!! \n");
+	// print_population(*population);
 
 	last_creature_index = *population_count -1; //from 0
 	while (*population_count < 30) {
-		printf("Current population count:     %d \n", *population_count);
+		// printf("Current population count:     %d \n", *population_count);
 
 		while (random_mother == random_father) {
 			random_father = rand();
@@ -130,8 +137,8 @@ void mating_time(jedinec **population, int *population_count, int mutation_perce
 			random_father %= last_creature_index;
 			random_mother %= last_creature_index;
 		}
-		printf("Father:     %d \n", random_father);
-		printf("Mother:     %d \n", random_mother);
+		// printf("Father:     %d \n", random_father);
+		// printf("Mother:     %d \n", random_mother);
 
 		breed_offspring(*population, random_father, random_mother, env, mutation_percentage);
 
@@ -140,6 +147,7 @@ void mating_time(jedinec **population, int *population_count, int mutation_perce
 
 		(*population_count)++;
 	}
+
 }
 
 // Iterates over population until given index and returns pointer to creature
@@ -149,6 +157,7 @@ jedinec *get_creature_by_number(jedinec *population, int index) {
 	// print_population(population);
 
 	for (i = 0; i < index; i++) {
+		// printf("<UwU>   %f\n", pointer_to_creature->gene[0].real);
 
 		pointer_to_creature = pointer_to_creature->next;
 	}
@@ -214,7 +223,7 @@ void test_creature(jedinec * creature, environment *env) {
 	}
 
 	creature->fitness = atof(result);
-	printf("Testing results: %f \n", creature->fitness);
+	// printf("Testing results: %f \n", creature->fitness);
 
 }
 
@@ -242,6 +251,8 @@ void breed_offspring(jedinec *population, int mother_index, int father_index, en
 
 	last_creature->next->previous = last_creature;
 	last_creature->next->next = NULL;
+
+	sprintf(last_creature->next->name, "%d%d", mother_index, father_index);
 	last_creature->next->fitness = 0;
 	last_creature->next->gene = (gene*) calloc(env->count_of_parameters, sizeof(gene));
 	if (last_creature->next->gene == NULL){
@@ -272,10 +283,11 @@ void print_population(jedinec *population){
 	printf("Printing population \n");
 
 		do  {
-			printf("Creature number %d \n", count);
-			printf("Creature fitness %f \n", pointer->fitness);
-			printf("Creature gene real %f \n", pointer->gene[0].real);
-			printf("Creature gene binary %d \n", pointer->gene[1].binary);
+			printf("Creature \t  %d \n", count);
+			printf("\t\t name %s \n", pointer->name);
+			printf("\t\t fitness %f \n", pointer->fitness);
+			printf("\t\t gene real %f \n", pointer->gene[0].real);
+			printf("\t\t gene binary %d \n", pointer->gene[1].binary);
 			count++;
 		} while (pointer = pointer->next);
 }
@@ -295,12 +307,19 @@ jedinec *get_last_creature_in_list(jedinec *population) {
 void kill_all(jedinec *population) {
 	jedinec *pointer = population;
 	jedinec *creature;
+	int some_alive = 1;
 
-	while (pointer->next) {
+	while (some_alive) {
 		creature = pointer;
-		pointer = pointer->next;
+		if (pointer->next) {
+			pointer = pointer->next;
+		} else {
+			some_alive = 0;
+		}
+
 		kill_creature(creature);
 	}
+
 }
 
 // Crosses father and mother gene according to configuration an mutates
@@ -368,16 +387,38 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 		}
 	}
 
+
 	offspring_gene->binary = get_int_from_binary(bin_num);
+	int mutation_diff = (int) (offspring_gene->binary * (mutation_percentage / 100));
+
+	if (rand() % 2) {
+		offspring_gene->binary += mutation_diff;
+	} else {
+		offspring_gene->binary -= mutation_diff;
+	}
 
 	free(binary_father_gene);
 	free(binary_mother_gene);
 	free(offspring_gene_binary);
 }
 
+void mutate_binary(gene *offspring_gene, int mutation_percentage){
+
+}
+
 // Crosses real by getting average of father and mother
-void cross_real_and_append(float father_gene, float mother_gene, gene *offspring_gene_real, int mutation_percentage) {
-	offspring_gene_real->real = (father_gene + mother_gene) / 2;
+void cross_real_and_append(float father_gene, float mother_gene, gene *offspring_gene, int mutation_percentage) {
+
+
+	offspring_gene->real = (father_gene + mother_gene) / 2;
+	float mutation_diff = (float) (offspring_gene->real * (mutation_percentage / 100));
+
+	if (rand() % 2) {
+		offspring_gene->real += mutation_diff;
+	} else {
+		offspring_gene->real -= mutation_diff;
+	}
+
 }
 
 // returns integer from long long number

@@ -18,6 +18,7 @@ typedef union Data {
 } gene;
 
 typedef struct Creature {
+	char name[5];
 	gene *gene;
 	float fitness;
 	struct Creature *next;
