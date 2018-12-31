@@ -20,7 +20,7 @@ typedef union Data {
 typedef struct Creature {
 	char name[5];
 	gene *gene;
-	int is_alpha;
+	int is_alpha; //fittest of them all, the chosen one, invulnerable until fitter creature appears
 	float fitness;
 	struct Creature *next;
 	struct Creature *previous;

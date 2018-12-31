@@ -156,6 +156,8 @@ void get_environment(char* file_name, environment **env) {
   sprintf((*env)->meta_data_file, "%s", file_name);
 
   fclose(file_pointer);
+  remove("fittest_creatures.txt"); //remove previous logs
+
   // if (line){
   //   free(line);
   // }

@@ -166,6 +166,16 @@ jedinec *get_creature_by_number(jedinec *population, int index) {
 	return pointer_to_creature;
 }
 
+
+void remove_alpha_tags(jedinec *population) {
+	int i;
+	jedinec *pointer = population;
+
+	do  {
+		pointer->is_alpha = 0;
+	} while (pointer = pointer->next);
+}
+
 // Makes adjecent creatures point to each other and kills (frees) creature
 // memory clean after creature
 void kill_creature(jedinec *creature) {
@@ -299,7 +309,6 @@ void *log_fittest(jedinec *population,int generation_number, environment *env){
 		char log[100];
 		int i;
 
-
 		FILE * file_pointer;
 		file_pointer = fopen("fittest_creatures.txt", "a");
 		if (file_pointer == NULL)
@@ -317,21 +326,23 @@ void *log_fittest(jedinec *population,int generation_number, environment *env){
 		fittest;
 		fittest->is_alpha = 1;
 
-		sprintf(log, "--- GENERATION %d ---\n", generation_number);
+		printf("Alpha creature has fitness: \t %f  \n\n\n", fittest->fitness);
+
+		sprintf(log, "\n\n--- GENERATION %d ---\n", generation_number);
 		fputs(log, file_pointer);
 		memset(log, 0, sizeof log);
 
-		sprintf(log, "%f\n", fittest->fitness);
+		sprintf(log, "Fitness: \t %f\n\n", fittest->fitness);
 		fputs(log, file_pointer);
 		memset(log, 0, sizeof log);
 
 		for (i = 0; i < env->count_of_parameters; i++) {
 			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
-				sprintf(log, "%c=%d#%s;Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
+				sprintf(log, "%c \t\t = \t %d \t\t\t\t #(%s);Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
 				fputs(log, file_pointer);
 				memset(log, 0, sizeof log);
 			} else {
-				sprintf(log, "%c=%f#%s;Z\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
+				sprintf(log, "%c \t\t = \t %f \t #(%s);Z\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
 				fputs(log, file_pointer);
 				memset(log, 0, sizeof log);
 			}
@@ -377,20 +388,34 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 	int i = 0, f_bin_gene, m_bin_gene;
 	float f_real_gene, m_real_gene;
 	char parameter;
+	int valid_gene;
+	int valid_part;
 
-	for (i = 0; i < env->count_of_parameters; i++) {
-		parameter = env->parameters[i]; // env part of gene
-		if (parameter == VARIABLE_TYPE_INTEGER) {
-			f_bin_gene = father_gene[i].binary;
-			m_bin_gene = mother_gene[i].binary;
-			cross_binary_and_append(f_bin_gene, m_bin_gene, (*offspring_gene) + i);
-		} else if (parameter == VARIABLE_TYPE_REAL){
-			f_real_gene = father_gene[i].real;
-			m_real_gene = mother_gene[i].real;
-			cross_real_and_append(f_real_gene, m_real_gene, (*offspring_gene) + i);
+	do  {
+
+		valid_gene = 1;
+
+		for (i = 0; i < env->count_of_parameters; i++) {
+			parameter = env->parameters[i]; // env part of gene
+			if (parameter == VARIABLE_TYPE_INTEGER) {
+				f_bin_gene = father_gene[i].binary;
+				m_bin_gene = mother_gene[i].binary;
+				cross_binary_and_append(f_bin_gene, m_bin_gene, (*offspring_gene) + i);
+				valid_part = is_valid_int(env->intervals[i], (*offspring_gene)[i].binary);
+			} else if (parameter == VARIABLE_TYPE_REAL){
+				f_real_gene = father_gene[i].real;
+				m_real_gene = mother_gene[i].real;
+				cross_real_and_append(f_real_gene, m_real_gene, (*offspring_gene) + i);
+				valid_part = is_valid_float(env->intervals[i], (*offspring_gene)[i].real);
+			}
+
+			if (!valid_part) {
+				valid_gene = 0;
+			}
 		}
-	}
-	i = 0;
+
+	} while (!valid_gene);
+
 }
 
 // Converts int to binary representation and gets some bits from mother,
@@ -405,35 +430,29 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 	get_binary_from_int(father_gene, &binary_father_gene);
 	get_binary_from_int(mother_gene, &binary_mother_gene);
 
-	int size = sizeof(char) * strlen(binary_father_gene) + 1;
-	char *offspring_gene_binary = malloc(size);
+	int length = strlen(binary_father_gene);
+	char *offspring_gene_binary = malloc(sizeof(char) * length + 1);
 	if (offspring_gene_binary == NULL){
 		printf("Malloc failed\n");
 		return;
 	}
 
-	offspring_gene_binary[size] = '\0';
+	offspring_gene_binary[length+1] = '\0';
 
-	int length = strlen(binary_father_gene);
-	int gene_switch;
 
-	gene_switch = 0;
 
 	while(1){
 		for (i = 0; i < length; i++) {
-			if (gene_switch == 0) {
+			if (rand() % 2) {
 				offspring_gene_binary[i] = binary_mother_gene[i];
-				gene_switch = 1;
 			} else {
 				offspring_gene_binary[i] = binary_father_gene[i];
-				gene_switch = 0;
 			}
 		}
 		sscanf(offspring_gene_binary, "%lld", &bin_num);
 		if (bin_num != 0) {
 			break;
 		} else {
-			gene_switch = 1; // try switching even/odd gene picking
 			continue;
 		}
 	}
@@ -451,11 +470,13 @@ void mutate_population(jedinec *population, int mutation_percentage, int populat
 	int index, i;
 	jedinec *creature;
 	int count_of_mutants = population_count / mutation_percentage;
-	for (i = 0; i < count_of_mutants; i++) {
+	printf("Mutating %d creatures\n", count_of_mutants);
+	for (i = 0; i < count_of_mutants; ) {
 		index = rand() % population_count;
 		creature = get_creature_by_number(population, index);
 		if (!creature->is_alpha) {
 			mutate_creature(creature, env);
+			i++;
 		}
 	}
 }

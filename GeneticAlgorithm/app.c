@@ -65,6 +65,10 @@ void life(int count_of_generations, int mutation_percentage, environment *env) {
     }
 
 		evolve(&population, &population_count, mutation_percentage, env, last_generation);
+    remove_alpha_tags(population);
+
+    printf("\n\nGeneration number %d finished.\n", generation_number);
+
     log_fittest(population, generation_number, env);
   }
 

@@ -24,7 +24,7 @@ void print_population(jedinec *population);
 void *log_fittest(jedinec *population,int generation_number, environment *env);
 void mutate_population(jedinec *population, int mutation_percentage, int population_count, environment * env);
 void mutate_creature(jedinec *creature, environment * env);
-
+void remove_alpha_tags(jedinec *population);
 
 #define VARIABLE_TYPE_INTEGER 'Z'
 #define VARIABLE_TYPE_REAL 'R'
