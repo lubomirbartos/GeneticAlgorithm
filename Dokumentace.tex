@@ -1,0 +1,58 @@
+\documentclass{article}  
+\begin{document}  
+  Semestrální práce z KIV/PC
+  Genetický algoritmus
+  
+  
+  overview
+  src explanation
+  directory structure
+  users guide
+  -metadata file format
+  -arguments
+  -make
+  some diagrams
+  -data flow
+  -activity diagram
+  -rizeni
+  -workflow
+  -main
+  |
+  |-handle_cmd_arguments
+  |-get_environment
+  |-life
+    |
+    |-create_initial_population
+    |-evolve
+      |
+      |-test creature
+      | |
+      | |-write to metadata file
+      | |-execute executable
+      |
+      |-dying
+      | |
+      | |-kill everyone with below average fitness
+      |  
+      |-mating
+      | |
+      | |-breed_offspring
+      |   |
+      |   |-cross_gene
+      |     |
+      |     |-cross_binary
+      |     | |
+      |     | |-convert to 0s and 1s
+      |     | |-randomly pick mother/father part
+      |     | |-convert back to int
+      |     |
+      |     |-is_valid_binary
+      |     |-cross_real
+      |     |-is_valid_real
+      |
+      |-mutate_population
+        |
+        |-create new random gene for given percentage of population
+  
+    
+\end{document}
