@@ -2,6 +2,8 @@
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
+#define VARIABLE_TYPE_INTEGER 'Z'
+#define VARIABLE_TYPE_REAL 'R'
 
 typedef struct Configuration {
 	char *executable;

@@ -7,9 +7,14 @@
 #include "config.h"
 #include "nature.h"
 
-//reads file with meta data and stores configuration to env
+// reads file with meta data and stores configuration to env
+// env->executable
+//      meta_data_file
+//      count_of_parameters
+//      parameters
+//      intervals
 void get_environment(char* file_name, environment **env) {
-  char *executable, *parameters, **intervals, **new_intervals, type[1], *interval, *line;
+  char *executable, *parameters, **intervals, **new_intervals, type[2], *interval, *line;
   int param_count = 0, i;
   FILE * file_pointer;
   size_t len = 0;
@@ -26,6 +31,7 @@ void get_environment(char* file_name, environment **env) {
   parameters[0] = '\0';
 
   srand(time(NULL));
+  intervals = NULL;
 
   file_pointer = fopen(file_name, "r");
 
@@ -34,36 +40,16 @@ void get_environment(char* file_name, environment **env) {
 
   }
 
-  // line = malloc(100*sizeof(char));
+  line = malloc(100*sizeof(char));
 
+  //********************************************************//
+  //   read configuration from metadata file line by line   //
+  //********************************************************//
   while ((read = getline(&line, &len, file_pointer)) != -1) {
 
-    if (line && strlen(line) <= 2) {
+    if (line && line[1] == '\n') {
       continue;
     }
-
-    // for (i = 0; i < param_count; i++) //from one, we will free first with free below
-    //   free(new_intervals[i]);
-
-    // free(new_intervals);
-
-
-    // new_intervals = (char**)calloc(param_count, sizeof(char *));
-    // if (new_intervals == NULL){
-    //   printf("Malloc failed\n");
-    //   return;
-    // }
-    //
-    // for (i = 0; i < param_count; i++) {
-    //   new_intervals[i] = malloc(strlen(intervals[i]) * sizeof(char) + 1);
-    //   if (new_intervals[i] == NULL){
-    //     printf("Malloc failed\n");
-    //     return;
-    //   }
-    //
-    //   new_intervals[i][0] = '\0';
-    //   strcpy(new_intervals[i], intervals[i]);
-    // }
 
     if (intervals) {
       new_intervals = realloc(intervals, sizeof(*intervals) * (param_count+1));
@@ -81,58 +67,58 @@ void get_environment(char* file_name, environment **env) {
 
     }
 
-    // intervals = new_intervals;
-
-    // file or variable, constants dont matter
     if (line[0] == '#') {
 
       if (strstr(line,  "#_(") != NULL) {
         // variable
         interval = malloc(interval_size * sizeof(char));
         store_variable_from_line(line, interval, type);
-
-        parameters = (char *) realloc(parameters, (strlen(parameters) + 1) * sizeof(char));
+        type[1] = '\0';
+        parameters = (char *) realloc(parameters, (param_count + 1) * sizeof(char));
         if (parameters == NULL){
           printf("Malloc failed\n");
           return;
         }
+        parameters[param_count] = type[0];
 
-        append_string(&parameters, type);
-
-        intervals[param_count] = "\0";
-        append_string(intervals + param_count, interval);
-        // interval[0] = '\0';
+        intervals[param_count] = malloc(interval_size * sizeof(char));
+        intervals[param_count][0] = '\0';
+        strcpy(intervals[param_count], interval);
         free(interval);
-
         param_count++;
       } else {
-        // file
+        // executable
         executable = malloc(sizeof(char) * strlen(line));
+        if (executable == NULL){
+          printf("Malloc failed\n");
+          return;
+        }
         strcpy(executable, line+2);
-        if ((new_line_char_position=strchr(executable, '\n')) != NULL)
-            *new_line_char_position = '\0';
-
+        if ((new_line_char_position=strchr(executable, '\n')) != NULL){
+          *new_line_char_position = '\0';
+        }
       }
     }
     free(line);
+    line = malloc(100*sizeof(char));
   }
 
-  *env = malloc(sizeof(environment));
-  if (*env == NULL){
-    printf("Malloc failed\n");
-    return;
-  }
 
-  (*env)->parameters = malloc((strlen(parameters) + 1 ) * sizeof(char));
+  //*************************************************************//
+  //             Storing configuration of environment            //
+  //*************************************************************//
+
+  (*env)->parameters = malloc((sizeof parameters + 1 ) * sizeof(char));
   if ((*env)->parameters == NULL){
     printf("Malloc failed\n");
     return;
   }
 
-  sprintf((*env)->parameters, "%s", parameters);
+  (*env)->parameters = parameters;
+  parameters = NULL;
 
   (*env)->count_of_parameters = param_count;
-  // (*env)->intervals = malloc((strlen(intervals) + 1 )*sizeof(char *));
+
   (*env)->intervals  = realloc(intervals, sizeof(intervals));
   if ((*env)->intervals == NULL){
     printf("Malloc failed\n");
@@ -140,31 +126,22 @@ void get_environment(char* file_name, environment **env) {
   }
 
 
-  (*env)->executable = malloc((strlen(executable) + 1 ) * sizeof(char));
+  (*env)->executable = realloc(executable, (strlen(executable) + 1 ) * sizeof(char));
   if ((*env)->executable == NULL){
     printf("Malloc failed\n");
     return;
   }
+  (*env)->executable[strlen(executable)] = '\0';
 
-  sprintf((*env)->executable, "%s", executable);
   (*env)->meta_data_file = malloc((strlen(file_name) + 1 ) * sizeof(char));
   if ((*env)->meta_data_file == NULL){
     printf("Malloc failed\n");
     return;
   }
-
   sprintf((*env)->meta_data_file, "%s", file_name);
 
-  fclose(file_pointer);
+  fclose(file_pointer); //close file
   remove("fittest_creatures.txt"); //remove previous logs
-
-  // if (line){
-  //   free(line);
-  // }
-  free(executable);
-  free(parameters);
-
-
 }
 
 // returns 0 if value is outside of intervals
@@ -173,7 +150,6 @@ int is_valid_int(char *interval, int value){
   int from, to;
   sscanf(interval, "%d,%d", &from, &to);
   return (from < value && value < to);
-
 }
 
 // returns 0 if value is outside of intervals
@@ -184,8 +160,8 @@ int is_valid_float(char *interval, float value){
   return (from < value && value < to); // TODO this is not good I think
 }
 
-// Writes data from creatures gene into metadata file,
-// so we can evaluate the creature
+// Writes data from creature's gene into metadata file,
+// so we can test the creature
 void write_creature_metadata(jedinec *creature, environment *env){
   FILE * meta_data_file_pointer, * temporary_file_pointer;
   int BUFFER_SIZE = 1000, i, variable_flag = 0, variable_count = 0, is_valid = 0;
@@ -218,13 +194,10 @@ void write_creature_metadata(jedinec *creature, environment *env){
       type = env->parameters[variable_count];
       strcpy(interval, env->intervals[variable_count]);
 
-
       memset(tmp, 0, sizeof tmp);
-
       memset(variable_name, 0, sizeof variable_name);
 
       sscanf(buffer, "%s = %s", variable_name, tmp);
-      // variable_name[strlen(variable_name)] = '\0';
 
       if (type == VARIABLE_TYPE_INTEGER) {
         is_valid = is_valid_int(interval, creature->gene[variable_count].binary);
@@ -248,7 +221,6 @@ void write_creature_metadata(jedinec *creature, environment *env){
       }
 
       fputs(new_line, temporary_file_pointer);
-
       variable_count++;
       variable_flag = 0;
 
@@ -270,73 +242,37 @@ void write_creature_metadata(jedinec *creature, environment *env){
   rename("replace_tmp.txt", env->meta_data_file);
 }
 
+// Read line with interval and type and store the interval and type
 void store_variable_from_line(char *line, char *interval, char *type) {
   float from_real, to_real;
   int from_int, to_int;
   char * new_line_char_position;
-  if ((new_line_char_position=strchr(line, '\n')) != NULL)
-      *new_line_char_position = '\0';
 
+  if ((new_line_char_position=strchr(line, '\n')) != NULL){
+    *new_line_char_position = '\0';
+  }
 
   sscanf( line, "#_(%f,%f);%c", &from_real, &to_real, type );
 
   if (*type == VARIABLE_TYPE_INTEGER) {
     sscanf( line, "#_(%d,%d);Z", &from_int, &to_int );
-    sprintf(interval, "%d,%d", from_int, to_int);
+    sprintf(interval, "%d,%d%c", from_int, to_int, '\0');
 
   } else if (*type == VARIABLE_TYPE_REAL) {
-    sprintf(interval, "%f,%f", from_real, to_real);
+    sprintf(interval, "%f,%f%c", from_real, to_real, '\0');
   } else {
     printf("Unknown variale\n");
   }
 }
 
-
-void append_string(char **text, char *appended_string) {
-  char * result ;
-  int size = 1; //last char is zero
-  if (*text) {
-    size += strlen(*text);
-  }
-
-  if (appended_string) {
-    size += strlen(appended_string);
-  }
-
-  if((result = malloc(size * sizeof(char))) != NULL){
-
-    result[0] = '\0';   // ensures the memory is an empty string
-    if (*text) {
-      strcat(result,*text);
-    }
-
-    strcat(result,appended_string);
-    // free(*text);
-
-    *text = malloc(sizeof(char) * strlen(result));
-    if (*text == NULL){
-      printf("Malloc failed\n");
-      return;
-    }
-
-    *text[0] = '\0';   // ensures the memory is an empty string
-    strcat(*text,result);
-  } else {
-
-    printf("malloc failed in append_string!\n");
-  }
-  if (result) {
-    free(result);
-  }
-}
-
+// Converts integer to its binary representation
+// and stores it as string
 void get_binary_from_int(int n, char ** result) {
   unsigned int u, mask;
   int nbits, i;
 
   // determine the number of bits needed ("sizeof" returns bytes)
   nbits = sizeof(n) * 8;
-  // free(*result);
 
   (*result) = malloc((nbits+1) * sizeof(char) );
   if ((*result) == NULL){
@@ -351,7 +287,4 @@ void get_binary_from_int(int n, char ** result) {
   mask = 1 << (nbits-1); // fill in values right-to-left
   for (i = 0; i < nbits; i++, mask >>= 1)
   (*result)[i] = ((u & mask) != 0) + '0';
-
-  // result = NULL;
-
 }

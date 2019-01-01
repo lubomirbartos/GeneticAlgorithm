@@ -3,7 +3,6 @@
 #define NATURE_H
 #include "structures.h"
 
-
 void dying_time(jedinec **population, int *population_count);
 void create_initial_population(jedinec **population, int count_of_creatures, environment *env);
 jedinec *create_creature(environment *env);
@@ -25,8 +24,5 @@ void *log_fittest(jedinec *population,int generation_number, environment *env);
 void mutate_population(jedinec *population, int mutation_percentage, int population_count, environment * env);
 void mutate_creature(jedinec *creature, environment * env);
 void remove_alpha_tags(jedinec *population);
-
-#define VARIABLE_TYPE_INTEGER 'Z'
-#define VARIABLE_TYPE_REAL 'R'
 
 #endif
