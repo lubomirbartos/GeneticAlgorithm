@@ -40,7 +40,7 @@ void get_environment(char* file_name, environment **env) {
 
   }
 
-  line = malloc(100*sizeof(char));
+  // line = malloc(100*sizeof(char));
 
   //********************************************************//
   //   read configuration from metadata file line by line   //
@@ -74,12 +74,13 @@ void get_environment(char* file_name, environment **env) {
         interval = malloc(interval_size * sizeof(char));
         store_variable_from_line(line, interval, type);
         type[1] = '\0';
-        parameters = (char *) realloc(parameters, (param_count + 1) * sizeof(char));
+        parameters = (char *) realloc(parameters, (param_count + 2) * sizeof(char));
         if (parameters == NULL){
           printf("Malloc failed\n");
           return;
         }
         parameters[param_count] = type[0];
+        parameters[param_count+1] = '\0';
 
         intervals[param_count] = malloc(interval_size * sizeof(char));
         intervals[param_count][0] = '\0';
@@ -88,7 +89,8 @@ void get_environment(char* file_name, environment **env) {
         param_count++;
       } else {
         // executable
-        executable = malloc(sizeof(char) * strlen(line));
+        executable = malloc(sizeof(char) * strlen(line) + 1);
+        executable[strlen(line)] = '\0';
         if (executable == NULL){
           printf("Malloc failed\n");
           return;
@@ -102,36 +104,35 @@ void get_environment(char* file_name, environment **env) {
     free(line);
     line = malloc(100*sizeof(char));
   }
+  if (line) {
+    free(line);
+  }
 
 
   //*************************************************************//
   //             Storing configuration of environment            //
   //*************************************************************//
 
-  (*env)->parameters = malloc((sizeof parameters + 1 ) * sizeof(char));
-  if ((*env)->parameters == NULL){
-    printf("Malloc failed\n");
-    return;
-  }
 
   (*env)->parameters = parameters;
   parameters = NULL;
 
   (*env)->count_of_parameters = param_count;
 
-  (*env)->intervals  = realloc(intervals, sizeof(intervals));
-  if ((*env)->intervals == NULL){
-    printf("Malloc failed\n");
-    return;
-  }
+  (*env)->intervals = intervals;
 
 
-  (*env)->executable = realloc(executable, (strlen(executable) + 1 ) * sizeof(char));
+  (*env)->executable = malloc((strlen(executable) + 1 ) * sizeof(char));
   if ((*env)->executable == NULL){
     printf("Malloc failed\n");
     return;
   }
+  (*env)->executable[0] = '\0';
+
+  strcpy((*env)->executable, executable);
+
   (*env)->executable[strlen(executable)] = '\0';
+  free(executable);
 
   (*env)->meta_data_file = malloc((strlen(file_name) + 1 ) * sizeof(char));
   if ((*env)->meta_data_file == NULL){

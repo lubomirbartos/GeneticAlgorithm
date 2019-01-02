@@ -4,6 +4,8 @@
 
 #define VARIABLE_TYPE_INTEGER 'Z'
 #define VARIABLE_TYPE_REAL 'R'
+#define POPULATION_LIMIT 100
+#define DEFAULT_MUTATION_RATE 5
 
 typedef struct Configuration {
 	char *executable;

@@ -4,7 +4,7 @@
 #include "structures.h"
 
 void dying_time(jedinec **population, int *population_count);
-void create_initial_population(jedinec **population, int count_of_creatures, environment *env);
+void create_initial_population(jedinec **population, int *count_of_creatures, environment *env);
 jedinec *create_creature(environment *env);
 void create_random_gene(gene *gene, environment *env);
 void mating_time(jedinec **population, int *population_count, environment *env);
