@@ -15,9 +15,9 @@
       int i;
       jedinec *population_pointer = *population;
 
-      // printf("\n*******************************************\n"); //Comment tag
-      // printf("****** GETTING FITNESS FOR CREATURES ******\n"); //Comment tag
-      // printf("*******************************************\n\n"); //Comment tag
+      printf("\n*******************************************\n"); //Comment tag
+      printf("****** GETTING FITNESS FOR CREATURES ******\n"); //Comment tag
+      printf("*******************************************\n\n"); //Comment tag
 
       for(i = 0; i < *population_count; i++) {
           test_creature(population_pointer, env);
@@ -49,13 +49,13 @@
       if (generation_number == (count_of_generations - 1)) {
         last_generation = 1;
       }
-      // printf("\n\n ..........Starting generation %d..........\n", generation_number); //Comment tag
+      printf("\n\n ..........Starting generation %d..........\n", generation_number); //Comment tag
 
   		evolve(&population, &population_count, mutation_percentage, env, last_generation);
       remove_alpha_tags(population);
 
       log_fittest(population, generation_number, env);
-      // printf("\n\n ...........Ending generation %d...........\n\n", generation_number); //Comment tag
+      printf("\n\n ...........Ending generation %d...........\n\n", generation_number); //Comment tag
 
     }
 
@@ -106,7 +106,7 @@
           // mutation_percentage = atoi(argv[4]);
           sscanf(argv[4], "%d", &mutation_percentage);
 
-          printf("Malloc failed %s\n", argv[3]);
+          // printf("Malloc failed %s\n", argv[3]);
 
       } else {
           mutation_percentage = DEFAULT_MUTATION_RATE; //default 5%

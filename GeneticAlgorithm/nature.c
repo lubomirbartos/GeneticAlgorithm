@@ -19,13 +19,13 @@ void dying_time(jedinec **population, int *population_count) {
 	get_average_fitness(*population, population_count, &average_fitness);
 	jedinec *pointer = *population;
 	jedinec *weakling;
-	// printf("\n*******************************************\n"); //Comment tag
-	// printf("*************** DYING TIME ****************\n"); //Comment tag
-	// printf("*******************************************\n\n"); //Comment tag
+	printf("\n*******************************************\n"); //Comment tag
+	printf("*************** DYING TIME ****************\n"); //Comment tag
+	printf("*******************************************\n\n"); //Comment tag
 
 
-	// printf("..Average fitness of population      \t%f \n", average_fitness); //Comment tag
-	// printf("..Population count before the purge  \t%d \n\n", *population_count); //Comment tag
+	printf("..Average fitness of population      \t%f \n", average_fitness); //Comment tag
+	printf("..Population count before the purge  \t%d \n\n", *population_count); //Comment tag
 
 	while(pointer) {
 		if(pointer->fitness < average_fitness && *population_count > 10 ){
@@ -41,7 +41,7 @@ void dying_time(jedinec **population, int *population_count) {
 			pointer = pointer->next;
 		}
 	}
-	// printf("\n..Population count after the purge:  \t%d \n", *population_count); //Comment tag
+	printf("\n..Population count after the purge:  \t%d \n", *population_count); //Comment tag
 
 }
 
@@ -128,9 +128,9 @@ void create_random_gene(gene *gene, environment *env){
 void mating_time(jedinec **population, int *population_count, environment *env) {
 	int random_mother = 0, random_father = 0;
 	int last_creature_index;
-	// printf("\n*******************************************\n"); //Comment tag
-	// printf("************** MATING TIME ****************\n"); //Comment tag
-	// printf("*******************************************\n\n"); //Comment tag
+	printf("\n*******************************************\n"); //Comment tag
+	printf("************** MATING TIME ****************\n"); //Comment tag
+	printf("*******************************************\n\n"); //Comment tag
 	// print_population(*population);
 
 	last_creature_index = *population_count -1; //from 0
@@ -195,7 +195,7 @@ void kill_creature(jedinec *creature) {
 	}
 
 	if (first && last) {
-		// printf("!Killing last creature!\n"); //Comment tag
+		printf("!Killing last creature!\n"); //Comment tag
 	} else if (first) {
 		creature->next->previous = NULL;
 	} else if (last) {
@@ -205,7 +205,7 @@ void kill_creature(jedinec *creature) {
 		creature->next->previous = creature->previous;
 	}
 
-	// printf("..Creature with fitness\t %f \tkilled!\n", creature->fitness); //Comment tag
+	printf("..Creature with fitness\t %f \tkilled!\n", creature->fitness); //Comment tag
 
 	free(creature->gene);
 	free(creature);
@@ -238,7 +238,7 @@ void test_creature(jedinec * creature, environment *env) {
 	}
 
 	creature->fitness = atof(result);
-	// printf("..Creature got fitness %f \n", creature->fitness); //Comment tag
+	printf("..Creature got fitness %f \n", creature->fitness); //Comment tag
 
 }
 
@@ -279,7 +279,7 @@ void breed_offspring(jedinec *population, int mother_index, int father_index, en
 
 	copy_gene(last_creature->next->gene, offspring_gene, env);
 
-	// printf("..Parents \t%d and %d \tcreated offspring!\n", father_index, mother_index); //Comment tag
+	printf("..Parents \t%d and %d \tcreated offspring!\n", father_index, mother_index); //Comment tag
 
 	free(offspring_gene);
 	last_creature = NULL;
@@ -299,14 +299,14 @@ void copy_gene(gene *to, gene *from, environment *env){
 void print_population(jedinec *population){
 	jedinec *pointer = population;
 	int count = 0;
-	// printf("Printing population \n"); //Comment tag
+	printf("Printing population \n"); //Comment tag
 
 		do  {
-			// printf("\nCreature \t  %d \n", count); //Comment tag
-			// printf("\t\t name %s \n", pointer->name); //Comment tag
-			// printf("\t\t fitness %f \n", pointer->fitness); //Comment tag
-			// printf("\t\t gene real %f \n", pointer->gene[0].real); //Comment tag
-			// printf("\t\t gene binary %d \n", pointer->gene[1].binary); //Comment tag
+			printf("\nCreature \t  %d \n", count); //Comment tag
+			printf("\t\t name %s \n", pointer->name); //Comment tag
+			printf("\t\t fitness %f \n", pointer->fitness); //Comment tag
+			printf("\t\t gene real %f \n", pointer->gene[0].real); //Comment tag
+			printf("\t\t gene binary %d \n", pointer->gene[1].binary); //Comment tag
 			count++;
 		} while (pointer = pointer->next);
 }
@@ -334,7 +334,7 @@ void *log_fittest(jedinec *population,int generation_number, environment *env){
 		fittest;
 		fittest->is_alpha = 1;
 
-		// printf("..Alpha creature has fitness:\t\t%f  \n\n", fittest->fitness); //Comment tag
+		printf("..Alpha creature has fitness:\t\t%f  \n\n", fittest->fitness); //Comment tag
 
 		sprintf(log, "\n\n--- GENERATION %d ---\n", generation_number);
 		fputs(log, file_pointer);
@@ -470,9 +470,9 @@ void mutate_population(jedinec *population, int mutation_percentage, int populat
 	jedinec *creature;
 	int count_of_mutants = population_count / mutation_percentage;
 	int unkillable = 0;
-	printf("\n*******************************************\n"); // Comment tag
-	printf("********* Mutating %d creatures ************\n", count_of_mutants); // Comment tag
-	printf("*******************************************\n\n"); // Comment tag
+	// printf("\n*******************************************\n"); // Comment tag
+	// printf("********* Mutating %d creatures ************\n", count_of_mutants); // Comment tag
+	// printf("*******************************************\n\n"); // Comment tag
 	for (i = 0; i < count_of_mutants; ) {
 		index = rand() % population_count;
 		creature = get_creature_by_number(population, index);
