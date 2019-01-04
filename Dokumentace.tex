@@ -1,8 +1,12 @@
 \documentclass{article}  
 \begin{document}  
   Semestrální práce z KIV/PC
-  Genetický algoritmus
+  Optimalizace funkce Genetickým algoritmem
   
+  dictionary:
+  	creature
+  	environment
+  	gene
   
   overview
   src explanation
@@ -19,7 +23,7 @@
   -main
   |
   |-handle_cmd_arguments
-  |-get_environment
+  |-get_environment  ::  config.c
   |-life
     |
     |-create_initial_population
@@ -36,7 +40,7 @@
       |  
       |-mating
       | |
-      | |-breed_offspring
+      | |-breed_offspring - create new creatures until you reach limit
       |   |
       |   |-cross_gene
       |     |
@@ -46,13 +50,13 @@
       |     | |-randomly pick mother/father part
       |     | |-convert back to int
       |     |
-      |     |-is_valid_binary
-      |     |-cross_real
+      |     |-is_valid_binary - checks if it is in interval
+      |     |-cross_real - average of parents
       |     |-is_valid_real
       |
       |-mutate_population
-        |
-        |-create new random gene for given percentage of population
+        |//pick given percentage of population randomly
+        |-create new random gene picked individuals
   
     
 \end{document}

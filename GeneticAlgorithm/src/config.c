@@ -2,10 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include "structures.h"
-#include "jedinec.h"
-#include "config.h"
-#include "nature.h"
+#include <math.h>
+#include "../lib/structures.h"
+#include "../lib/config.h"
+#include "../lib/nature.h"
 
 // reads file with meta data and stores configuration to env
 // env->executable
@@ -14,13 +14,18 @@
 //      parameters
 //      intervals
 void get_environment(char* file_name, environment **env) {
-  char *executable, *parameters, **intervals, **new_intervals, type[2], *interval, *line;
+  char *executable, *parameters, **intervals, **new_intervals, type[2], *interval;
   int param_count = 0, i;
   FILE * file_pointer;
-  size_t len = 0;
-  ssize_t read;
+  ssize_t read = -1;
   char *new_line_char_position;
   int interval_size = 50;
+  int BUFFER_SIZE = 1000;
+  char line[BUFFER_SIZE];
+  int variable_flag = 0;
+  char *variable_names = malloc(sizeof(char));
+  variable_names[0] = '\0';
+
 
   parameters = malloc(sizeof(char));
   if (parameters == NULL){
@@ -37,15 +42,13 @@ void get_environment(char* file_name, environment **env) {
 
   if (file_pointer == NULL) {
     exit(EXIT_FAILURE);
-
   }
-
-  // line = malloc(100*sizeof(char));
 
   //********************************************************//
   //   read configuration from metadata file line by line   //
   //********************************************************//
-  while ((read = getline(&line, &len, file_pointer)) != -1) {
+
+  while ((fgets(line, BUFFER_SIZE, file_pointer)) != NULL) {
 
     if (line && line[1] == '\n') {
       continue;
@@ -70,7 +73,9 @@ void get_environment(char* file_name, environment **env) {
     if (line[0] == '#') {
 
       if (strstr(line,  "#_(") != NULL) {
-        // variable
+        //********************************************************//
+        //            Line with details of variable               //
+        //********************************************************//
         interval = malloc(interval_size * sizeof(char));
         store_variable_from_line(line, interval, type);
         type[1] = '\0';
@@ -87,83 +92,84 @@ void get_environment(char* file_name, environment **env) {
         strcpy(intervals[param_count], interval);
         free(interval);
         param_count++;
+        variable_flag = 1;
       } else {
-        // executable
+        //********************************************************//
+        //              Line with executable file                 //
+        //********************************************************//
+
+        // if ((new_line_char_position=strchr(line, '\n')) != NULL){
+        //   *new_line_char_position = ' ';
+        // }
+
         executable = malloc(sizeof(char) * strlen(line) + 1);
-        executable[strlen(line)] = '\0';
         if (executable == NULL){
           printf("Malloc failed\n");
           return;
         }
-        strcpy(executable, line+2);
-        if ((new_line_char_position=strchr(executable, '\n')) != NULL){
-          *new_line_char_position = '\0';
-        }
+
+        sscanf(line, "#_%s", executable);
+
+      }
+    } else {
+      if (variable_flag) {
+        variable_names = realloc(variable_names, (param_count + 1) * sizeof(char));
+        variable_names[param_count - 1] = line[0];
+
+        variable_names[param_count] = '\0';
+        variable_flag = 0;
       }
     }
-    free(line);
-    line = malloc(100*sizeof(char));
+    // free(line);
+    // line = malloc(100*sizeof(char));
   }
-  if (line) {
-    free(line);
-  }
+  // if (line) {
+  //   free(line);
+  // }
 
 
   //*************************************************************//
   //             Storing configuration of environment            //
   //*************************************************************//
-
-
   (*env)->parameters = parameters;
-  parameters = NULL;
-
   (*env)->count_of_parameters = param_count;
-
   (*env)->intervals = intervals;
+  (*env)->variable_names = variable_names;
+  (*env)->executable = executable;
 
 
-  (*env)->executable = malloc((strlen(executable) + 1 ) * sizeof(char));
-  if ((*env)->executable == NULL){
-    printf("Malloc failed\n");
-    return;
-  }
-  (*env)->executable[0] = '\0';
-
-  strcpy((*env)->executable, executable);
-
-  (*env)->executable[strlen(executable)] = '\0';
-  free(executable);
-
+  // (*env)->executable = malloc((strlen(executable) + 1 ) * sizeof(char));
+  // if ((*env)->executable == NULL){
+  //   printf("Malloc failed\n");
+  //   return;
+  // }
   (*env)->meta_data_file = malloc((strlen(file_name) + 1 ) * sizeof(char));
   if ((*env)->meta_data_file == NULL){
     printf("Malloc failed\n");
     return;
   }
+
+
+  // (*env)->executable[0] = '\0';
+  // strcpy((*env)->executable, executable);
+  // (*env)->executable[strlen(executable)] = '\0';
+
+
   sprintf((*env)->meta_data_file, "%s", file_name);
+  // sprintf((*env)->executable, "%s", executable);
 
+
+
+  parameters = NULL;
+  // free(executable);
   fclose(file_pointer); //close file
-  remove("fittest_creatures.txt"); //remove previous logs
-}
-
-// returns 0 if value is outside of intervals
-// returns something else than 0 if value is in interval
-int is_valid_int(char *interval, int value){
-  int from, to;
-  sscanf(interval, "%d,%d", &from, &to);
-  return (from < value && value < to);
-}
-
-// returns 0 if value is outside of intervals
-// returns something else than 0 if value is in interval
-int is_valid_float(char *interval, float value){
-  float from, to;
-  sscanf(interval, "%f,%f", &from, &to);
-  return (from < value && value < to); // TODO this is not good I think
+  remove("../gen.txt"); //remove previous logs
+  remove("../val.txt"); //remove previous logs
 }
 
 // Writes data from creature's gene into metadata file,
 // so we can test the creature
-void write_creature_metadata(jedinec *creature, environment *env){
+void write_creature_metadata(creature *creature, environment *env){
   FILE * meta_data_file_pointer, * temporary_file_pointer;
   int BUFFER_SIZE = 1000, i, variable_flag = 0, variable_count = 0, is_valid = 0;
   char buffer[BUFFER_SIZE], type, interval[100], new_line[100], variable_name[20], tmp[100];
@@ -287,5 +293,35 @@ void get_binary_from_int(int n, char ** result) {
 
   mask = 1 << (nbits-1); // fill in values right-to-left
   for (i = 0; i < nbits; i++, mask >>= 1)
-  (*result)[i] = ((u & mask) != 0) + '0';
+    (*result)[i] = ((u & mask) != 0) + '0';
+}
+
+// returns integer from long long number
+// of ones and zeros representing binary number
+int get_int_from_binary(long long n){
+	int decimal = 0, i = 0, remainder;
+	while (n!=0) {
+		remainder = n%10;
+		n /= 10;
+		decimal += remainder * pow(2,i);
+		++i;
+	}
+	return decimal;
+}
+
+
+// returns 0 if value is outside of intervals
+// returns something else than 0 if value is in interval
+int is_valid_int(char *interval, int value){
+  int from, to;
+  sscanf(interval, "%d,%d", &from, &to);
+  return (from < value && value < to);
+}
+
+// returns 0 if value is outside of intervals
+// returns something else than 0 if value is in interval
+int is_valid_float(char *interval, float value){
+  float from, to;
+  sscanf(interval, "%f,%f", &from, &to);
+  return (from < value && value < to); // TODO this is not good I think
 }

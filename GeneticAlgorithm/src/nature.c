@@ -4,21 +4,71 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <float.h>
-#include <math.h>
-#include <time.h>
-#include "structures.h"
-#include "jedinec.h"
-#include "config.h"
-#include "nature.h"
+#include "../lib/structures.h"
+#include "../lib/config.h"
+#include "../lib/nature.h"
+
+//population count se muze menit, proto ukazatel
+// evolves a population for number of generations in environment
+void evolve(creature **population, int *population_count, int mutation_percentage, environment *env, int last_generation) {
+		int i;
+		creature *population_pointer = *population;
+
+		printf("\n*******************************************\n"); //Comment tag
+		printf("****** GETTING FITNESS FOR CREATURES ******\n"); //Comment tag
+		printf("*******************************************\n\n"); //Comment tag
+
+		for(i = 0; i < *population_count; i++) {
+				test_creature(population_pointer, env);
+				population_pointer = population_pointer->next;
+		}
+
+		dying_time(population, population_count); //die before you fuck, weakling!
+
+		assert(*population_count != 0);
+		if (!last_generation) {
+			mating_time(population, population_count, env);
+			mutate_population(*population, mutation_percentage, *population_count, env);
+		}
+}
+
+//starts the evolution with given arguments
+// int count_of_generations - count of generations
+// int mutation_percentage - mutation percentage
+void life(int count_of_generations, int mutation_percentage, environment *env) {
+		int generation_number;
+		int population_count = 0;
+		creature *population;
+		creature *fittest;
+		int last_generation = 0;
+
+		create_initial_population(&population, &population_count, env);
+
+	for ( generation_number = 0 ; generation_number < count_of_generations ; generation_number++ ) {
+		if (generation_number == (count_of_generations - 1)) {
+			last_generation = 1;
+		}
+		printf("\n\n ..........Starting generation %d..........\n", generation_number); //Comment tag
+
+		evolve(&population, &population_count, mutation_percentage, env, last_generation);
+		remove_alpha_tags(population);
+
+		log_fittest(population, generation_number, env);
+		printf("\n\n ...........Ending generation %d...........\n\n", generation_number); //Comment tag
+
+	}
+
+	kill_all(population);
+}
 
 
 // Kills creatures that have below average fitness
-void dying_time(jedinec **population, int *population_count) {
+void dying_time(creature **population, int *population_count) {
 	float average_fitness;
 	int i;
-	get_average_fitness(*population, population_count, &average_fitness);
-	jedinec *pointer = *population;
-	jedinec *weakling;
+	get_average_fitness(*population, *population_count, &average_fitness);
+	creature *pointer = *population;
+	creature *weakling;
 	printf("\n*******************************************\n"); //Comment tag
 	printf("*************** DYING TIME ****************\n"); //Comment tag
 	printf("*******************************************\n\n"); //Comment tag
@@ -29,6 +79,7 @@ void dying_time(jedinec **population, int *population_count) {
 
 	while(pointer) {
 		if(pointer->fitness < average_fitness && *population_count > 10 ){
+
 			if (!pointer->previous) { //first member, we need to change population pointer
 				*population = pointer->next; // TODO but what if there is only one and no next?
 			}
@@ -45,56 +96,81 @@ void dying_time(jedinec **population, int *population_count) {
 
 }
 
+// iterates over population and counts the average population
+void get_average_fitness(creature *population, int population_count, float *average_fitness){
+	float sum = 0;
+	creature *pointer = population;
+
+	// sum of all fitnesses
+	for(int i = 0; i < population_count; i++) {
+		sum += pointer->fitness;
+		pointer = pointer->next;
+	}
+
+	//save average
+	*average_fitness = sum/(population_count);
+
+}
+
+
 // Creates initial population with given count and according to configuration
-void create_initial_population(jedinec **population, int *count_of_creatures, environment *env){
+void create_initial_population(creature **population, int *count_of_creatures, environment *env){
 	int i;
-	jedinec *creature;
-	jedinec *population_last;
+	creature *creation;
+	creature *last;
 	*population = create_creature(env);
-	population_last = *population;
+	(*population)->previous = NULL;
+	(*population)->first = 1;
+	(*population)->last = 1;
+	last = *population;
 
 	for (i = 1; i < POPULATION_LIMIT; i++) {
-		creature = create_creature(env);
-		sprintf(creature->name, "%d", i);
-		creature->previous = population_last;
-		population_last->next = creature;
-		population_last = creature;
+		creation = create_creature(env);
+		sprintf(creation->name, "%d", i);
+		creation->previous = last;
+		last->last = 0;
+		creation->last = 1;
+		creation->first = 0;
+		last->next = creation;
+		last = creation;
 		(*count_of_creatures)++;
 	}
 
 }
 
 // Creates creature with random gene according to configuration
-jedinec *create_creature(environment *env) {
-	jedinec *creature;
+creature *create_creature(environment *env) {
+	creature *creation;
 	gene *gene = calloc(env->count_of_parameters, sizeof(gene));
+
 	if (gene == NULL){
 		printf("Malloc failed\n");
 		return NULL;
 	}
 
 	create_random_gene(gene, env);
-	creature = calloc (1, sizeof (jedinec));
-	if (creature == NULL){
+	creation = calloc (1, sizeof (creature));
+	if (creation == NULL){
 		printf("Malloc failed\n");
 		return NULL;
 	}
 
-	if (creature == NULL){
+	if (creation == NULL){
 		return NULL;
 	}
 
-	creature->gene = gene;
-	if (!creature->gene) {
-		free (creature);
+	creation->gene = gene;
+	if (!creation->gene) {
+		free (creation);
 		free (gene);
 		return NULL;
 	}
+	// printf("Malloc failed %d\n", creature->previous);
 
-	creature->fitness = 0;
-	creature->is_alpha = 0;
+	creation->fitness = 0;
+	creation->is_alpha = 0;
 
-	return creature;
+	return creation;
 }
 
 /////////////////////////////////////////////////////////
@@ -123,33 +199,49 @@ void create_random_gene(gene *gene, environment *env){
 	}
 }
 
+int get_valuable_creature_index(creature *population, int last_creature_index) {
+	float average_fitness;
+	creature *valuable_creature;
+	int index;
+	float fitness = FLT_MIN;
+
+	get_average_fitness(population, last_creature_index, &average_fitness);
+
+	while (fitness < average_fitness) {
+		index = rand() % last_creature_index;
+		valuable_creature = get_creature_by_number(population, index);
+		fitness = valuable_creature->fitness;
+	}
+	return index;
+}
+
 // Creates random pairs that breed new members of population
 // Children are appended to end of list
-void mating_time(jedinec **population, int *population_count, environment *env) {
-	int random_mother = 0, random_father = 0;
+void mating_time(creature **population, int *population_count, environment *env) {
+	int mother_index = 0, father_index = 0;
 	int last_creature_index;
 	printf("\n*******************************************\n"); //Comment tag
 	printf("************** MATING TIME ****************\n"); //Comment tag
 	printf("*******************************************\n\n"); //Comment tag
 	// print_population(*population);
 
-	last_creature_index = *population_count -1; //from 0
+	last_creature_index = *population_count -1; //from 0 until last adult
 	while (*population_count < POPULATION_LIMIT) {
 		// printf("Current population count:     %d \n", *population_count);
 
-		while (random_mother == random_father) {
-			random_father = rand();
-			random_mother = rand();
-			random_father %= last_creature_index;
-			random_mother %= last_creature_index;
+		while (mother_index == father_index) {
+			//strong father and random mother, because if we pick
+			//only creatures with high fittness, the weaker ones will never breed
+			father_index = get_valuable_creature_index(*population, last_creature_index);
+			mother_index = rand() % last_creature_index;
 		}
-		// printf("Father:     %d \n", random_father);
-		// printf("Mother:     %d \n", random_mother);
+		// printf("Father:     %d \n", father_index);
+		// printf("Mother:     %d \n", mother_index);
 
-		breed_offspring(*population, random_father, random_mother, env);
+		breed_offspring(*population, father_index, mother_index, env);
 
-		random_mother = 0;
-		random_father = 0;
+		mother_index = 0;
+		father_index = 0;
 
 		(*population_count)++;
 	}
@@ -157,9 +249,9 @@ void mating_time(jedinec **population, int *population_count, environment *env) 
 }
 
 // Iterates over population until given index and returns pointer to creature
-jedinec *get_creature_by_number(jedinec *population, int index) {
+creature *get_creature_by_number(creature *population, int index) {
 	int i;
-	jedinec *pointer_to_creature = population;
+	creature *pointer_to_creature = population;
 	// print_population(population);
 
 	for (i = 0; i < index; i++) {
@@ -172,9 +264,9 @@ jedinec *get_creature_by_number(jedinec *population, int index) {
 }
 
 
-void remove_alpha_tags(jedinec *population) {
+void remove_alpha_tags(creature *population) {
 	int i;
-	jedinec *pointer = population;
+	creature *pointer = population;
 
 	do  {
 		pointer->is_alpha = 0;
@@ -183,47 +275,46 @@ void remove_alpha_tags(jedinec *population) {
 
 // Makes adjecent creatures point to each other and kills (frees) creature
 // memory clean after creature
-void kill_creature(jedinec *creature) {
-	int first = 0, last = 0;
-
-	if (!creature->next) {
-		last = 1;
-	}
-
-	if (!creature->previous) {
-		first = 1;
-	}
-
-	if (first && last) {
+void kill_creature(creature *individual) {
+	if (individual->first && individual->last) {
 		printf("!Killing last creature!\n"); //Comment tag
-	} else if (first) {
-		creature->next->previous = NULL;
-	} else if (last) {
-		creature->previous->next = NULL;
+	} else if (individual->first) {
+		individual->next->previous = NULL;
+		individual->next->first = 1;
+	} else if (individual->last) {
+		individual->previous->next = NULL;
+		individual->previous->last = 1;
 	} else {
-		creature->previous->next = creature->next;
-		creature->next->previous = creature->previous;
+		individual->previous->next = individual->next;
+		individual->next->previous = individual->previous;
 	}
 
-	printf("..Creature with fitness\t %f \tkilled!\n", creature->fitness); //Comment tag
+	printf("..Creature with fitness\t %f \tkilled!\n", individual->fitness); //Comment tag
 
-	free(creature->gene);
-	free(creature);
+	free(individual->gene);
+	free(individual);
 }
 
 // Writes creature data to meta data file,
 // executes executable from command line and gets result,
 // which will be stored as fitness of creature
-void test_creature(jedinec * creature, environment *env) {
+void test_creature(creature * individual, environment *env) {
 	int BUFSIZE = 128;
 	FILE *fp;
 	char result[100];
 	int count_of_results = 0;
 	char path_buf[PATH_MAX + 100];
+	// printf("LOL %s     !\n", env->executable);
+	// printf("LOL %s!\n", env->executable);
+	// printf("LOL %s!\n", env->executable);
+	// printf("LOL %s!\n", env->executable);
+// exit(0);
+// printf("LOL %s!\n", env->executable);
+// exit(0);
 
-	char * path = realpath("func", path_buf); //TODO replace with env->executable
+	char * path = realpath(env->executable, path_buf); //TODO replace with env->executable
 
-	write_creature_metadata(creature, env);
+	write_creature_metadata(individual, env);
 
 	if ((fp = popen(path_buf, "r")) == NULL) {  //TODO not multiplatform
 		printf("Error opening pipe!\n");
@@ -237,14 +328,15 @@ void test_creature(jedinec * creature, environment *env) {
 		printf("Command not found or exited with error status\n");
 	}
 
-	creature->fitness = atof(result);
-	printf("..Creature got fitness %f \n", creature->fitness); //Comment tag
+	individual->fitness = atof(result);
+	log_results(individual, env);
+	printf("..Creature got fitness %f \n", individual->fitness); //Comment tag
 
 }
 
 // Creates new offspring with gene based on its parents' genes.
 // Pushes new offspring to population list.
-void breed_offspring(jedinec *population, int mother_index, int father_index, environment *env){
+void breed_offspring(creature *population, int mother_index, int father_index, environment *env){
 
 	gene *offspring_gene = malloc(env->count_of_parameters * sizeof(gene));
 	if (!offspring_gene) {
@@ -252,14 +344,14 @@ void breed_offspring(jedinec *population, int mother_index, int father_index, en
 		return;
 	}
 
-	jedinec *last_creature = get_last_creature_in_list(population);
+	creature *last_creature = get_last_creature_in_list(population);
 
 	gene *father_gene = get_creature_by_number(population, father_index)->gene;
 	gene *mother_gene = get_creature_by_number(population, mother_index)->gene;
 
 	cross_gene(mother_gene, father_gene, &offspring_gene, env);
 
-	last_creature->next = (jedinec*) malloc(sizeof(jedinec));
+	last_creature->next = (creature*) malloc(sizeof(creature));
 	if (last_creature->next == NULL){
 		printf("Malloc failed\n");
 		return;
@@ -271,6 +363,9 @@ void breed_offspring(jedinec *population, int mother_index, int father_index, en
 	sprintf(last_creature->next->name, "%d%d", mother_index, father_index);
 	last_creature->next->fitness = FLT_MIN;
 	last_creature->next->is_alpha = 0;
+	last_creature->last = 0;
+	last_creature->next->last = 1;
+	last_creature->next->first = 0;
 	last_creature->next->gene = (gene*) calloc(env->count_of_parameters, sizeof(gene));
 	if (last_creature->next->gene == NULL){
 		printf("Malloc failed\n");
@@ -296,8 +391,10 @@ void copy_gene(gene *to, gene *from, environment *env){
 		}
 	}
 }
-void print_population(jedinec *population){
-	jedinec *pointer = population;
+
+// prints info about all members of population
+void print_population(creature *population){
+	creature *pointer = population;
 	int count = 0;
 	printf("Printing population \n"); //Comment tag
 
@@ -311,14 +408,50 @@ void print_population(jedinec *population){
 		} while (pointer = pointer->next);
 }
 
-void *log_fittest(jedinec *population,int generation_number, environment *env){
-		jedinec *pointer = population;
-		jedinec *fittest = population;
+void *log_results(creature *individual, environment *env){
+	char log[100];
+	int i;
+
+	FILE * file_pointer;
+	file_pointer = fopen("../val.txt", "a");
+	if (file_pointer == NULL)
+	{
+		/* Unable to open file hence exit */
+		printf("\nUnable to open file.\n");
+		exit(0);
+	}
+
+	sprintf(log, "%f\n", individual->fitness);
+	printf("\%s.\n", log);
+	// exit(0);
+
+	fputs(log, file_pointer);
+	memset(log, 0, sizeof log);
+
+	for (i = 0; i < env->count_of_parameters; i++) {
+		if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
+			sprintf(log, "%c=%d#(%s);Z\n", env->variable_names[i], individual->gene[i].binary, env->intervals[i]);
+		} else {
+			sprintf(log, "%c=%f#(%s);R\n", env->variable_names[i], individual->gene[i].real, env->intervals[i]);
+		}
+
+		fputs(log, file_pointer);
+		memset(log, 0, sizeof log);
+	}
+
+	fputs("\n", file_pointer);
+
+	fclose(file_pointer);
+}
+
+void *log_fittest(creature *population,int generation_number, environment *env){
+		creature *pointer = population;
+		creature *fittest = population;
 		char log[100];
 		int i;
 
 		FILE * file_pointer;
-		file_pointer = fopen("fittest_creatures.txt", "a");
+		file_pointer = fopen("../gen.txt", "a");
 		if (file_pointer == NULL)
 		{
 			/* Unable to open file hence exit */
@@ -336,34 +469,36 @@ void *log_fittest(jedinec *population,int generation_number, environment *env){
 
 		printf("..Alpha creature has fitness:\t\t%f  \n\n", fittest->fitness); //Comment tag
 
-		sprintf(log, "\n\n--- GENERATION %d ---\n", generation_number);
+		sprintf(log, "--- GENERATION %d ---\n", generation_number);
 		fputs(log, file_pointer);
 		memset(log, 0, sizeof log);
 
-		sprintf(log, "Fitness: \t %f\n\n", fittest->fitness);
+		sprintf(log, "%f\n", fittest->fitness);
 		fputs(log, file_pointer);
 		memset(log, 0, sizeof log);
 
 		for (i = 0; i < env->count_of_parameters; i++) {
 			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
-				sprintf(log, "%c \t\t = \t %d \t\t\t\t #(%s);Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
+				sprintf(log, "%c=%d#(%s);Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
 				fputs(log, file_pointer);
 				memset(log, 0, sizeof log);
 			} else {
-				sprintf(log, "%c \t\t = \t %f \t #(%s);Z\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
+				sprintf(log, "%c=%f#(%s);R\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
 				fputs(log, file_pointer);
 				memset(log, 0, sizeof log);
 			}
 
 		}
+		fputs("\n", file_pointer);
+
 		fclose(file_pointer);
 
 }
 
 
 // returns pointer to last creature in population
-jedinec *get_last_creature_in_list(jedinec *population) {
-	jedinec *pointer = population;
+creature *get_last_creature_in_list(creature *population) {
+	creature *pointer = population;
 
 	while (pointer->next) {
 		pointer = pointer->next;
@@ -373,20 +508,20 @@ jedinec *get_last_creature_in_list(jedinec *population) {
 }
 
 // Kills whole population
-void kill_all(jedinec *population) {
-	jedinec *pointer = population;
-	jedinec *creature;
+void kill_all(creature *population) {
+	creature *pointer = population;
+	creature *individual;
 	int some_alive = 1;
 
 	while (some_alive) {
-		creature = pointer;
+		individual = pointer;
 		if (pointer->next) {
 			pointer = pointer->next;
 		} else {
 			some_alive = 0;
 		}
 
-		kill_creature(creature);
+		kill_creature(individual);
 	}
 
 }
@@ -465,9 +600,9 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 	free(offspring_gene_binary);
 }
 
-void mutate_population(jedinec *population, int mutation_percentage, int population_count, environment * env){
+void mutate_population(creature *population, int mutation_percentage, int population_count, environment * env){
 	int index, i;
-	jedinec *creature;
+	creature *individual;
 	int count_of_mutants = population_count / mutation_percentage;
 	int unkillable = 0;
 	// printf("\n*******************************************\n"); // Comment tag
@@ -475,16 +610,16 @@ void mutate_population(jedinec *population, int mutation_percentage, int populat
 	// printf("*******************************************\n\n"); // Comment tag
 	for (i = 0; i < count_of_mutants; ) {
 		index = rand() % population_count;
-		creature = get_creature_by_number(population, index);
-		unkillable = creature->is_alpha;
+		individual = get_creature_by_number(population, index);
+		unkillable = individual->is_alpha;
 		if (!unkillable) {
-			mutate_creature(creature, env);
+			mutate_creature(individual, env);
 			i++;
 		}
 	}
 }
 
-void mutate_creature(jedinec *creature, environment * env){
+void mutate_creature(creature *individual, environment * env){
 	int i;
 	int r;
 	int binary_or_real = rand() % 2;
@@ -497,11 +632,11 @@ void mutate_creature(jedinec *creature, environment * env){
 		r %= (int)( to - from );
 		if (binary_or_real) {
 			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
-				creature->gene[i].binary = (int)from + r;
+				individual->gene[i].binary = (int)from + r;
 			}
 		} else {
 			if (env->parameters[i] == VARIABLE_TYPE_REAL) {
-				creature->gene[i].real = from + (float) r;
+				individual->gene[i].real = from + (float) r;
 			}
 		}
 	}
@@ -515,21 +650,5 @@ void cross_real_and_append(float father_gene, float mother_gene, gene *offspring
 
 	offspring_gene->real = (father_gene + mother_gene) / 2;
 
-
-}
-
-// returns integer from long long number
-// of ones and zeros representing binary number
-int get_int_from_binary(long long n){
-
-	int decimalNumber = 0, i = 0, remainder;
-	while (n!=0)
-	{
-		remainder = n%10;
-		n /= 10;
-		decimalNumber += remainder * pow(2,i);
-		++i;
-	}
-	return decimalNumber;
 
 }
