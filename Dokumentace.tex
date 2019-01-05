@@ -1,0 +1,62 @@
+\documentclass{article}  
+\begin{document}  
+  Semestrální práce z KIV/PC
+  Optimalizace funkce Genetickým algoritmem
+  
+  dictionary:
+  	creature
+  	environment
+  	gene
+  
+  overview
+  src explanation
+  directory structure
+  users guide
+  -metadata file format
+  -arguments
+  -make
+  some diagrams
+  -data flow
+  -activity diagram
+  -rizeni
+  -workflow
+  -main
+  |
+  |-handle_cmd_arguments
+  |-get_environment  ::  config.c
+  |-life
+    |
+    |-create_initial_population
+    |-evolve
+      |
+      |-test creature
+      | |
+      | |-write to metadata file
+      | |-execute executable
+      |
+      |-dying
+      | |
+      | |-kill everyone with below average fitness
+      |  
+      |-mating
+      | |
+      | |-breed_offspring - create new creatures until you reach limit
+      |   |
+      |   |-cross_gene
+      |     |
+      |     |-cross_binary
+      |     | |
+      |     | |-convert to 0s and 1s
+      |     | |-randomly pick mother/father part
+      |     | |-convert back to int
+      |     |
+      |     |-is_valid_binary - checks if it is in interval
+      |     |-cross_real - average of parents
+      |     |-is_valid_real
+      |
+      |-mutate_population
+        |//pick given percentage of population randomly
+        |-create new random gene picked individuals
+  
+    
+\end{document}
