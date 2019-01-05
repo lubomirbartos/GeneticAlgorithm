@@ -22,13 +22,13 @@ SRCS = ./src/config.c ./src/nature.c ./src/app.c
 
 
 run : config.o nature.o app.o
-        gcc -o run config.o nature.o app.o
+	gcc -o run config.o nature.o app.o -lm
 
 config.o : ./src/config.c ./lib/structures.h ./lib/config.h ./lib/nature.h
-        gcc -c ./src/config.c
+	gcc -c ./src/config.c
 nature.o : ./src/nature.c ./lib/structures.h ./lib/config.h ./lib/nature.h
-        gcc -c ./src/nature.c
+	gcc -c ./src/nature.c
 app.o : ./src/app.c ./lib/structures.h ./lib/config.h ./lib/nature.h
-        gcc -c ./src/app.c
+	gcc -c ./src/app.c
 clean :
-        rm run config.o nature.o app.o
+	rm run config.o nature.o app.o

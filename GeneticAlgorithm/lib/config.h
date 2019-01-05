@@ -10,6 +10,6 @@ void get_binary_from_int(int n, char ** result);
 void write_creature_metadata(creature *creature, environment *env);
 int is_valid_int(char *interval, int value);
 int is_valid_float(char *interval, float value);
-int get_int_from_binary(long long n);
+int get_int_from_binary(long n);
 
 #endif

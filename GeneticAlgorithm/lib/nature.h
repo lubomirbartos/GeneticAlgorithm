@@ -26,10 +26,10 @@ creature *get_last_creature_in_list(creature *population);
 creature *get_creature_by_number(creature *population, int index);
 void copy_gene(gene *to, gene *from, environment *env);
 void print_population(creature *population);
-void *log_fittest(creature *population,int generation_number, environment *env);
+void log_fittest(creature *population,int generation_number, environment *env);
 void mutate_population(creature *population, int mutation_percentage, int population_count, environment * env);
 void mutate_creature(creature *creature, environment * env);
 void remove_alpha_tags(creature *population);
-void *log_results(creature *individual, environment *env);
+void log_results(creature *individual, environment *env);
 
 #endif

@@ -6,6 +6,8 @@
 #define VARIABLE_TYPE_REAL 'R'
 #define POPULATION_LIMIT 100
 #define DEFAULT_MUTATION_RATE 5
+#define BUFSIZE 200
+
 
 typedef struct Configuration {
 	char *executable;
@@ -27,7 +29,7 @@ typedef struct Creature {
 	gene *gene;
 	int first;
 	int last;
-	int is_alpha; //fittest of them all, the chosen one, invulnerable until fitter creature appears
+	int is_alpha; /*fittest of them all, the chosen one, invulnerable until fitter creature appears*/
 	float fitness;
 	struct Creature *next;
 	struct Creature *previous;
