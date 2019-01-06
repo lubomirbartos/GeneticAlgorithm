@@ -5,9 +5,22 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <float.h>
-#include "../lib/structures.h"
-#include "../lib/config.h"
-#include "../lib/nature.h"
+#include "structures.h"
+#include "config.h"
+#include "nature.h"
+
+
+/*
+* Evolves a population for number of generations in environment
+* Population count and population will be modified
+*
+* parameter creature   **population          pointer to pointer of population
+* parameter int         *population_count    population count
+* parameter int          mutation_percentage mutation percentage
+* parameter environment *env                 environment, configuration
+* parameter int          last_generation     boolean, 1 if it is last generation, 0 if not
+* return void
+*/
 
 /* population count and population will be modified */
 /* evolves a population for number of generations in environment */
@@ -30,14 +43,19 @@ void evolve(creature **population, int *population_count, int mutation_percentag
 
 		assert(*population_count != 0);
 		if (!last_generation) {
-			mating_time(population, population_count, env);
 			mutate_population(*population, mutation_percentage, *population_count, env);
+			mating_time(population, population_count, env);
 		}
 }
 
-/*starts the evolution with given arguments */
-/* int count_of_generations - count of generations */
-/* int mutation_percentage - mutation percentage */
+
+/*
+* Starts the evolution with given arguments
+*
+* parameter int count_of_generations - count of generations
+* parameter int mutation_percentage - mutation percentage
+* return void
+*/
 void life(int count_of_generations, int mutation_percentage, environment *env) {
 	creature *population;
 		int generation_number;
@@ -66,8 +84,13 @@ void life(int count_of_generations, int mutation_percentage, environment *env) {
 	kill_all(population);
 }
 
-
-/* Kills creatures that have below average fitness */
+/*
+* Kills creatures that have below average fitness
+*
+* parameter creature **population pointer to pointer of population
+* parameter int *population_count pointer to count of creatures
+* return void
+*/
 void dying_time(creature **population, int *population_count) {
 	float average_fitness;
 	creature *pointer;
@@ -100,25 +123,15 @@ void dying_time(creature **population, int *population_count) {
 
 }
 
-/* iterates over population and counts the average population */
-void get_average_fitness(creature *population, int population_count, float *average_fitness){
-	float sum = 0;
-	creature *pointer = population;
-	int i;
 
-	/* sum of all fitnesses */
-	for(i = 0; i < population_count; i++) {
-		sum += pointer->fitness;
-		pointer = pointer->next;
-	}
-
-	/*save average */
-	*average_fitness = sum/(population_count);
-
-}
-
-
-/* Creates initial population with given count and according to configuration */
+/*
+* Creates initial population with given count and according to configuration
+*
+* parameter creature **population pointer to pointer of population
+* parameter int *count_of_creatures pointer to count of creatures
+* parameter environment *env configuration for creating creatures
+* return void
+*/
 void create_initial_population(creature **population, int *count_of_creatures, environment *env){
 	int i;
 	creature *creation;
@@ -143,7 +156,12 @@ void create_initial_population(creature **population, int *count_of_creatures, e
 
 }
 
-/* Creates creature with random gene according to configuration */
+/*
+* Creates creature with random gene according to configuration
+*
+* parameter environment *env configuration for creating creatures
+* return creature* pointer to created creature
+*/
 creature *create_creature(environment *env) {
 	creature *creation;
 	gene *gene = calloc(env->count_of_parameters, sizeof(gene));
@@ -160,12 +178,9 @@ creature *create_creature(environment *env) {
 		return NULL;
 	}
 
-	if (creation == NULL){
-		return NULL;
-	}
-
 	creation->gene = gene;
 	if (!creation->gene) {
+		printf("Creating gene failed!\n");
 		free (creation);
 		free (gene);
 		return NULL;
@@ -194,34 +209,29 @@ void create_random_gene(gene *gene, environment *env){
 		r = rand();
 		sscanf(env->intervals[i], "%f,%f", &from, &to);
 
-		r %= (int)( to - from );
 		if (*(env->parameters + i) == VARIABLE_TYPE_INTEGER) {
+			r %= (int)( to - from );
 			gene[i].binary = (int)from + r;
 		} else if (*(env->parameters + i) == VARIABLE_TYPE_REAL){
+			/* to -= 1; */
+			r %= (int)( to - from );
 			gene[i].real = from + (float) r;
+			gene[i].real += (float)rand()/(float)(RAND_MAX);
 		}
 	}
 }
 
-/* Picks random creature with above average fitness and returns its index */
-int get_valuable_creature_index(creature *population, int last_creature_index) {
-	float average_fitness;
-	creature *valuable_creature;
-	int index;
-	float fitness = FLT_MIN;
 
-	get_average_fitness(population, last_creature_index, &average_fitness);
-
-	while (fitness < average_fitness) {
-		index = rand() % last_creature_index;
-		valuable_creature = get_creature_by_number(population, index);
-		fitness = valuable_creature->fitness;
-	}
-	return index;
-}
-
-/* Creates random pairs that breed new members of population */
-/* Children are appended to end of list */
+/*
+* Creates random pairs that breed new members of population
+* Children are appended to end of list
+*
+* param  (creature **)   population       pointer to pointer of population
+* param  (int *)         population_count population count
+* param  (environment *) env              configuration
+*
+* void
+*/
 void mating_time(creature **population, int *population_count, environment *env) {
 	int mother_index = 0, father_index = 0;
 	int last_creature_index;
@@ -249,37 +259,17 @@ void mating_time(creature **population, int *population_count, environment *env)
 
 }
 
-/* Iterates over population until given index and returns pointer to creature */
-creature *get_creature_by_number(creature *population, int index) {
-	int i;
-	creature *pointer_to_creature = population;
-
-	for (i = 0; i < index; i++) {
-		pointer_to_creature = pointer_to_creature->next;
-	}
-
-	return pointer_to_creature;
-}
 
 
-void remove_alpha_tags(creature *population) {
-	creature *pointer = population;
-	int continue_while;
-	continue_while = 1;
-	do  {
-		pointer->is_alpha = 0;
-		if (pointer->next) {
-			pointer = pointer->next;
-		} else {
-			continue_while = 0;
-		}
-	} while (continue_while);
 
-
-}
-
-/* Makes adjecent creatures point to each other and kills (frees) creature */
-/* memory clean after creature */
+/*
+* Makes adjecent creatures point to each other and kills (frees) creature
+* memory clean after creature
+*
+* param  (creature *) individual pointer to creature to kill
+*
+* void
+*/
 void kill_creature(creature *individual) {
 	if (individual->first && individual->last) {
 		printf("!Killing last creature!\n"); /*Comment tag */
@@ -300,9 +290,17 @@ void kill_creature(creature *individual) {
 	free(individual);
 }
 
-/* Writes creature data to meta data file, */
-/* executes executable from command line and gets result, */
-/* which will be stored as fitness of creature */
+
+/*
+* Writes creature data to meta data file,
+* executes executable from command line and gets result,
+* which will be stored as fitness of creature
+*
+* param  (creature *)    individual pointer to creature to kill
+* param  (environment *) env configuration
+*
+* void
+*/
 void test_creature(creature * individual, environment *env) {
 	FILE *fp;
 	char result[BUFSIZE];
@@ -331,8 +329,18 @@ void test_creature(creature * individual, environment *env) {
 
 }
 
-/* Creates new offspring with gene based on its parents' genes. */
-/* Pushes new offspring to population list. */
+
+/*
+* Creates new offspring with gene based on its parents' genes.
+* Pushes new offspring to population list.
+*
+* param  (creature *)     population pointer to population
+* param  int mother_index index of mother in population
+* param  int father_index index of father in population
+* param  (environment *)  env configuration
+*
+* void
+*/
 void breed_offspring(creature *population, int mother_index, int father_index, environment *env){
 	gene *father_gene;
 	gene *mother_gene;
@@ -391,139 +399,17 @@ void copy_gene(gene *to, gene *from, environment *env){
 	}
 }
 
-/* prints info about all members of population */
-void print_population(creature *population){
-	creature *pointer = population;
-	int continue_while;
-	int count;
-	printf("Printing population \n"); /*Comment tag */
-	continue_while = 1;
-	count = 0;
-
-		do  {
-			printf("\nCreature \t  %d \n", count); /*Comment tag */
-			printf("\t\t name %s \n", pointer->name); /*Comment tag */
-			printf("\t\t fitness %f \n", pointer->fitness); /*Comment tag */
-			printf("\t\t gene real %f \n", pointer->gene[0].real); /*Comment tag */
-			printf("\t\t gene binary %d \n", pointer->gene[1].binary); /*Comment tag */
-			count++;
-			if (pointer->next) {
-				pointer = pointer->next;
-			} else {
-				continue_while = 0;
-			}
-		} while (continue_while);
-}
-
-void log_results(creature *individual, environment *env){
-	char log[BUFSIZE];
-	int i;
-
-	FILE * file_pointer;
-	file_pointer = fopen("val.txt", "a");
-	if (file_pointer == NULL)
-	{
-		/* Unable to open file hence exit */
-		printf("\nUnable to open file.\n");
-		exit(0);
-	}
-
-	sprintf(log, "%f\n", individual->fitness);
-	fputs(log, file_pointer);
-	memset(log, 0, sizeof log);
-
-	for (i = 0; i < env->count_of_parameters; i++) {
-		if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
-			sprintf(log, "%c=%d#(%s);Z\n", env->variable_names[i], individual->gene[i].binary, env->intervals[i]);
-		} else {
-			sprintf(log, "%c=%f#(%s);R\n", env->variable_names[i], individual->gene[i].real, env->intervals[i]);
-		}
-
-		fputs(log, file_pointer);
-		memset(log, 0, sizeof log);
-	}
-
-	fputs("\n", file_pointer);
-
-	fclose(file_pointer);
-}
-
-void log_fittest(creature *population,int generation_number, environment *env){
-		creature *pointer;
-		creature *fittest;
-		char log[BUFSIZE];
-		int i;
-		FILE * file_pointer;
-		int continue_while;
-
-		continue_while = 1;
-		pointer        = population;
-		fittest        = population;
-		file_pointer   = fopen("gen.txt", "a");
-		if (file_pointer == NULL) {
-			/* Unable to open file hence exit */
-			printf("\nUnable to open file.\n");
-			exit(0);
-		}
-
-		do {
-				if (pointer->fitness > fittest->fitness) {
-						fittest = pointer;
-				}
-
-				if (pointer->next) {
-					pointer = pointer->next;
-				} else {
-					continue_while = 0;
-				}
-
-		} while (continue_while);
-
-		fittest->is_alpha = 1;
-
-		printf("..Alpha creature has fitness:\t\t%f  \n\n", fittest->fitness); /*Comment tag */
-
-		sprintf(log, "--- GENERATION %d ---\n", generation_number);
-		fputs(log, file_pointer);
-		memset(log, 0, sizeof log);
-
-		sprintf(log, "%f\n", fittest->fitness);
-		fputs(log, file_pointer);
-		memset(log, 0, sizeof log);
-
-		for (i = 0; i < env->count_of_parameters; i++) {
-			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
-				sprintf(log, "%c=%d#(%s);Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
-				fputs(log, file_pointer);
-				memset(log, 0, sizeof log);
-			} else {
-				sprintf(log, "%c=%f#(%s);R\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
-				fputs(log, file_pointer);
-				memset(log, 0, sizeof log);
-			}
-
-		}
-		fputs("\n", file_pointer);
-
-		fclose(file_pointer);
-
-}
 
 
-/* returns pointer to last creature in population */
-creature *get_last_creature_in_list(creature *population) {
-	creature *pointer;
 
-	pointer = population;
 
-	while (pointer->next) {
-		pointer = pointer->next;
-	}
-
-	return pointer;
-}
-
-/* Kills whole population */
+/*
+* Kills whole population.
+*
+* param  (creature *) population pointer to population
+*
+* void
+*/
 void kill_all(creature *population) {
 	creature *individual;
 	creature *pointer;
@@ -545,7 +431,16 @@ void kill_all(creature *population) {
 
 }
 
-/* Crosses father and mother gene according to configuration an mutates */
+/*
+* Crosses father and mother gene according to configuration an mutates
+*
+* param  (gene *)     mother_gene pointer to mother gene
+* param  (gene *)     father_gene pointer to father gene
+* param  (gene **)     offspring_gene pointer to pointer to offspring gene
+* param  (environment *)  env configuration
+*
+* void
+*/
 void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, environment *env){
 	char parameter;
 	float f_real_gene;
@@ -582,8 +477,16 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 
 }
 
-/* Converts int to binary representation and gets some bits from mother, */
-/* some from father and stores them them as integer into offspring gene */
+/*
+* Converts int to binary representation and gets some bits from mother,
+* some from father and stores them them as integer into offspring gene.
+*
+* param  int     father_gene father gene
+* param  int     mother_gene mother gene
+* param  (gene *)     offspring_gene pointer to offspring gene
+*
+* void
+*/
 void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_gene) {
 	char * offspring_gene_binary;
 	char * binary_father_gene;
@@ -624,7 +527,16 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 	free(offspring_gene_binary);
 }
 
-/* Picks given percentage of population at random and mutates them */
+/*
+* Picks given percentage of population at random and mutates them.
+*
+* param  (creature *) population father gene
+* param  int     mutation_percentage mutation percentage
+* param  int     population_count population count
+* param  (environment *)  env configuration
+*
+* void
+*/
 void mutate_population(creature *population, int mutation_percentage, int population_count, environment * env){
 	int index, i;
 	creature *individual;
@@ -649,8 +561,15 @@ void mutate_population(creature *population, int mutation_percentage, int popula
 	}
 }
 
-/* For given creature creates random new gene that replaces his old one      */
-/* Only one type of gene is mutated (either REAL or BINARY, picked randomly) */
+/*
+* For given creature creates random new gene that replaces his old one.
+* Only one type of gene is mutated (either REAL or BINARY, picked randomly).
+*
+* param  (creature *) individual creature to mutate
+* param  (environment *)  env configuration
+*
+* void
+*/
 void mutate_creature(creature *individual, environment * env){
 	int binary_or_real; /* like boolean */
 	int i;
@@ -671,12 +590,21 @@ void mutate_creature(creature *individual, environment * env){
 		} else {
 			if (env->parameters[i] == VARIABLE_TYPE_REAL) {
 				individual->gene[i].real = from + (float) r;
+				individual->gene[i].real += (float)rand()/(float)(RAND_MAX);
 			}
 		}
 	}
 }
 
-/* Crosses real by getting average of father and mother */
+/*
+* Crosses real by getting average of father and mother.
+*
+* param  float father_gene father gene as float
+* param  float mother_gene mother gene as float
+* param  (gene *) offspring_gene pointer to offspring gene
+*
+* void
+*/
 void cross_real_and_append(float father_gene, float mother_gene, gene *offspring_gene) {
 	offspring_gene->real = (father_gene + mother_gene) / 2;
 }
