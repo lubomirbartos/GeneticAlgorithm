@@ -1,4 +1,3 @@
-
 #ifndef STRUCTURES_H
 #define STRUCTURES_H
 
@@ -10,29 +9,29 @@
 
 
 typedef struct Configuration {
-	char *executable;
+	char **intervals;
 	char *meta_data_file;
 	char *variable_names;
-	int count_of_parameters;
+	char *executable;
 	char *parameters;
-	char **intervals;
+	int count_of_parameters;
 } environment;
 
 
 typedef union Data {
    int binary;
-   float real;
+	 float real;
 } gene;
 
 typedef struct Creature {
+	struct Creature *next;
+	struct Creature *previous;
 	char name[5];
 	gene *gene;
 	int first;
 	int last;
 	int is_alpha; /*fittest of them all, the chosen one, invulnerable until fitter creature appears*/
 	float fitness;
-	struct Creature *next;
-	struct Creature *previous;
 } creature;
 
 

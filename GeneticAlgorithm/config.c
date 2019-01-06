@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <float.h>
 #include <time.h>
 #include <math.h>
-#include "../lib/structures.h"
-#include "../lib/config.h"
-#include "../lib/nature.h"
+#include "structures.h"
+#include "config.h"
+#include "nature.h"
 
 /* reads file with meta data and stores configuration to env */
 /* env->executable */
@@ -14,12 +15,12 @@
 /*      parameters */
 /*      intervals */
 void get_environment(char* file_name, environment **env) {
-  char **new_intervals;
-  char **intervals;
-  char *variable_names;
-  char *executable;
-  char *parameters;
-  char *interval;
+  char ** new_intervals;
+  char ** intervals;
+  char *  variable_names;
+  char *  executable;
+  char *  parameters;
+  char *  interval;
   char line[BUFSIZE];
   char type[2];
 
@@ -50,11 +51,11 @@ void get_environment(char* file_name, environment **env) {
   file_pointer      = fopen(file_name, "r");
 
   if (file_pointer == NULL) {
+    printf("File pointer is NULL!\n");
     exit(EXIT_FAILURE);
   }
 
   srand(time(NULL)); /* create seed for random number generator*/
-
 
   /**********************************************************/
   /*   read configuration from metadata file line by line   */
@@ -129,8 +130,6 @@ void get_environment(char* file_name, environment **env) {
     }
   }
 
-
-
   /***************************************************************/
   /*             Storing configuration of environment            */
   /***************************************************************/
@@ -155,8 +154,255 @@ void get_environment(char* file_name, environment **env) {
   remove("val.txt"); /*remove previous logs */
 }
 
-/* Writes data from creature's gene into metadata file, */
-/* so we can test the creature */
+void remove_alpha_tags(creature *population) {
+	creature *pointer = population;
+	int continue_while;
+	continue_while = 1;
+	do  {
+		pointer->is_alpha = 0;
+		if (pointer->next) {
+			pointer = pointer->next;
+		} else {
+			continue_while = 0;
+		}
+	} while (continue_while);
+
+
+}
+
+/*
+* Returns pointer to last creature in population
+*
+* param  (creature *) population pointer to population
+*
+* returns creature * pointer to last creature in population
+*/
+creature *get_last_creature_in_list(creature *population) {
+	creature *pointer;
+	pointer = population;
+	while (pointer->next) {
+		pointer = pointer->next;
+	}
+
+	return pointer;
+}
+
+/*
+* Finds creature with highest fitness and logs it to gen.txt file
+*
+* param  (creature *) population pointer to population
+* param  int generation_number generation number
+* param  (environment *) env configuration
+*
+* returns void
+*/
+void log_fittest(creature *population,int generation_number, environment *env){
+		creature *pointer;
+		creature *fittest;
+		char log[BUFSIZE];
+		int i;
+		FILE * file_pointer;
+		int continue_while;
+
+		continue_while = 1;
+		pointer        = population;
+		fittest        = population;
+		file_pointer   = fopen("gen.txt", "a");
+		if (file_pointer == NULL) {
+			/* Unable to open file hence exit */
+			printf("Unable to open file.\n");
+			exit(0);
+		}
+
+		do {
+				if (pointer->fitness > fittest->fitness) {
+						fittest = pointer;
+				}
+
+				if (pointer->next) {
+					pointer = pointer->next;
+				} else {
+					continue_while = 0;
+				}
+
+		} while (continue_while);
+
+		fittest->is_alpha = 1;
+
+		printf("..Alpha creature has fitness:\t\t%f  \n\n", fittest->fitness); /*Comment tag */
+
+		sprintf(log, "--- GENERATION %d ---\n", generation_number);
+		fputs(log, file_pointer);
+		memset(log, 0, sizeof log);
+
+		sprintf(log, "%f\n", fittest->fitness);
+		fputs(log, file_pointer);
+		memset(log, 0, sizeof log);
+
+		for (i = 0; i < env->count_of_parameters; i++) {
+			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
+				sprintf(log, "%c=%d#(%s);Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
+				fputs(log, file_pointer);
+				memset(log, 0, sizeof log);
+			} else {
+				sprintf(log, "%c=%f#(%s);R\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
+				fputs(log, file_pointer);
+				memset(log, 0, sizeof log);
+			}
+
+		}
+		fputs("\n", file_pointer);
+
+		fclose(file_pointer);
+}
+
+/*
+* Logs given creature to val.txt file
+*
+* param  (creature *) individual creature to log
+* param  (environment *) env configuration
+*
+* returns void
+*/
+void log_results(creature * individual, environment * env){
+  FILE * file_pointer;
+	char log[BUFSIZE];
+	int i;
+
+	file_pointer = fopen("val.txt", "a");
+	if (file_pointer == NULL) {
+		/* Unable to open file hence exit */
+		printf("\nUnable to open file.\n");
+		exit(0);
+	}
+
+	sprintf(log, "%f\n", individual->fitness);
+	fputs(log, file_pointer);
+	memset(log, 0, sizeof log);
+
+	for (i = 0; i < env->count_of_parameters; i++) {
+		if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
+			sprintf(log, "%c=%d#(%s);Z\n", env->variable_names[i], individual->gene[i].binary, env->intervals[i]);
+		} else {
+			sprintf(log, "%c=%f#(%s);R\n", env->variable_names[i], individual->gene[i].real, env->intervals[i]);
+		}
+
+		fputs(log, file_pointer);
+		memset(log, 0, sizeof log);
+	}
+
+	fputs("\n", file_pointer);
+
+	fclose(file_pointer);
+}
+
+/*
+* prints info about all members of population
+*
+* param  (creature *) population pointer to population
+*
+* returns void
+*/
+void print_population(creature *population){
+	creature *pointer = population;
+	int continue_while;
+	int count;
+	printf("Printing population \n"); /*Comment tag */
+	continue_while = 1;
+	count = 0;
+
+		do  {
+			printf("\nCreature \t  %d \n", count); /*Comment tag */
+			printf("\t\t name %s \n", pointer->name); /*Comment tag */
+			printf("\t\t fitness %f \n", pointer->fitness); /*Comment tag */
+			printf("\t\t gene real %f \n", pointer->gene[0].real); /*Comment tag */
+			printf("\t\t gene binary %d \n", pointer->gene[1].binary); /*Comment tag */
+			count++;
+			if (pointer->next) {
+				pointer = pointer->next;
+			} else {
+				continue_while = 0;
+			}
+		} while (continue_while);
+}
+
+/*
+* Iterates over population and counts the average population
+*
+* param  (creature *) population pointer to population
+* param  int population_count population count
+* param  (float *) average_fitness  pointer to average fitness, we store it here
+*
+* returns void
+*/
+void get_average_fitness(creature *population, int population_count, float *average_fitness){
+	float sum = 0;
+	creature *pointer = population;
+	int i;
+
+	/* sum of all fitnesses */
+	for(i = 0; i < population_count; i++) {
+		sum += pointer->fitness;
+		pointer = pointer->next;
+	}
+
+	/*save average */
+	*average_fitness = sum/(population_count);
+
+}
+
+/*
+* Iterates over population until given index and returns pointer to creature
+*
+* param  (creature *) population pointer to population
+* param  int index index of creature in population list
+*
+* returns void
+*/
+creature *get_creature_by_number(creature *population, int index) {
+	int i;
+	creature *pointer_to_creature = population;
+
+	for (i = 0; i < index; i++) {
+		pointer_to_creature = pointer_to_creature->next;
+	}
+
+	return pointer_to_creature;
+}
+
+/*
+* Picks random creature with above average fitness and returns its index
+*
+* param  (creature *) population pointer to population
+* param  int last_creature_index index of last creature
+*
+* returns int inde of valuable creature
+*/
+int get_valuable_creature_index(creature *population, int last_creature_index) {
+	float average_fitness;
+	creature *valuable_creature;
+	int index;
+	float fitness = FLT_MIN;
+
+	get_average_fitness(population, last_creature_index, &average_fitness);
+
+	while (fitness < average_fitness) {
+		index = rand() % last_creature_index;
+		valuable_creature = get_creature_by_number(population, index);
+		fitness = valuable_creature->fitness;
+	}
+	return index;
+}
+
+/*
+* Writes data from creature's gene into metadata file,
+* so we can test the creature
+*
+* param  (creature *) population pointer to population
+* param  (environment *) env configuration
+*
+* returns void
+*/
 void write_creature_metadata(creature *creature, environment *env){
   FILE * meta_data_file_pointer;
   FILE * temporary_file_pointer;
@@ -215,6 +461,7 @@ void write_creature_metadata(creature *creature, environment *env){
       }
 
       if (!is_valid) {
+        printf("Variable is not valid!\n");
         exit(0);
       }
 
@@ -250,7 +497,16 @@ void write_creature_metadata(creature *creature, environment *env){
   rename("replace_tmp.txt", env->meta_data_file);
 }
 
-/* Read line with interval and type and store the interval and type */
+/*
+* Read line with interval and type and store the interval and type
+*
+* param  (char *) line line with interval and type
+* param  (char *) interval interval
+* param  (char *) type pointer to type character
+* param  (environment *) env configuration
+*
+* returns void
+*/
 void store_variable_from_line(char *line, char *interval, char *type) {
   char * new_line_char_position;
   float from_real;
@@ -275,8 +531,15 @@ void store_variable_from_line(char *line, char *interval, char *type) {
   }
 }
 
-/* Converts integer to its binary representation */
-/* and stores it as string                       */
+/*
+* Converts integer to its binary representation
+* and stores it as string
+*
+* param  int n number to convert to binary
+* param  (char **) result pointer to string to store to
+*
+* returns void
+*/
 void get_binary_from_int(int n, char ** result) {
   unsigned int mask;
   unsigned int u;
@@ -301,8 +564,14 @@ void get_binary_from_int(int n, char ** result) {
     (*result)[i] = ((u & mask) != 0) + '0';
 }
 
-/* returns integer from long long number */
-/* of ones and zeros representing binary number */
+/*
+* Converts and returns integer from long number
+* of ones and zeros representing binary number
+*
+* param  long n number with 0's and 1's to convert to integer
+*
+* returns int converted number
+*/
 int get_int_from_binary(long n){
 	int decimal;
   int remainder;
@@ -321,9 +590,15 @@ int get_int_from_binary(long n){
 	return decimal;
 }
 
-
-/* returns 0 if value is outside of intervals */
-/* returns something else than 0 if value is in interval */
+/*
+* returns 0 if value is outside of intervals
+* returns something else than 0 if value is in interval
+*
+* param  (char *) interval interval
+* param  int value number value to check
+*
+* returns int true/false
+*/
 int is_valid_int(char *interval, int value){
   int from;
   int to;
@@ -332,8 +607,15 @@ int is_valid_int(char *interval, int value){
   return (from <= value && value <= to);
 }
 
-/* returns 0 if value is outside of intervals */
-/* returns something else than 0 if value is in interval */
+/*
+* returns 0 if value is outside of intervals
+* returns something else than 0 if value is in interval
+*
+* param  (char *) interval interval
+* param  float value number value to check
+*
+* returns int true/false
+*/
 int is_valid_float(char *interval, float value){
   float from;
   float to;

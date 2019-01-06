@@ -2,9 +2,9 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include "../lib/structures.h"
-#include "../lib/config.h"
-#include "../lib/nature.h"
+#include "structures.h"
+#include "config.h"
+#include "nature.h"
 
 /* to disable info output, comment all lines */
 /* in config.c and nature.case containing "comment tag" */
@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
   env = malloc(sizeof(environment));
   if (env == NULL){
-    printf("Malloc failed\n");
+    printf("Malloc of env failed\n");
     return 0;
   }
 
@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
 
   /* handle arguments */
   if (!argv[1] || !argv[2]) {
+    printf("Did you forgot some arguments?\n");
     return 0;
   }
 
@@ -47,6 +48,10 @@ int main(int argc, char *argv[]) {
 
   if ((argc == 5) && argv[3] && (argv[3][0] == '-') && (argv[3][1] == 'm') && argv[4]) {
     sscanf(argv[4], "%d", &mutation_percentage);
+    if (!is_valid_int("0, 100", mutation_percentage)){
+      printf("Mutation percentage you entered is invalid!\n");
+      exit(0);
+    }
   } else {
     mutation_percentage = DEFAULT_MUTATION_RATE; /* default 5% */
   }
