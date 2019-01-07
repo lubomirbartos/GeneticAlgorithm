@@ -6,6 +6,17 @@
 #include "config.h"
 #include "nature.h"
 
+/*
+* Main of this program.
+* Handles arguments from command line,
+* loads configuration,
+* executes life.
+*
+* parameter int      population count of arguments from command line
+* parameter (char *) argv[]     pointer arguments from command line
+*
+* returns void
+*/
 /* to disable info output, comment all lines */
 /* in config.c and nature.case containing "comment tag" */
 int main(int argc, char *argv[]) {
@@ -29,7 +40,7 @@ int main(int argc, char *argv[]) {
 
 
   /* handle arguments */
-  if (!argv[1] || !argv[2]) {
+  if (!argv[1] || !argv[2] || !argv[3]) {
     printf("Did you forgot some arguments?\n");
     return 0;
   }
@@ -60,17 +71,16 @@ int main(int argc, char *argv[]) {
     get_environment(meta_data_file, &env);
   }
 
-
   life(count_of_generations, mutation_percentage, env);
 
-  free(env->executable);
-  free(env->meta_data_file);
-  free(env->parameters);
   for (i = 0; i < env->count_of_parameters; i++) {
     free(env->intervals[i]);
   }
-  free(env->variable_names);
   free(env->intervals);
+  free(env->variable_names);
+  free(env->executable);
+  free(env->meta_data_file);
+  free(env->parameters);
   free(env);
   free(meta_data_file);
 
