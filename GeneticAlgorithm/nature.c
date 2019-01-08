@@ -33,16 +33,18 @@ void evolve(creature **population, int *population_count, int mutation_percentag
 		population_pointer = *population;
 
 		for(i = 0; i < *population_count; i++) {
-				test_creature(population_pointer, env);
-				population_pointer = population_pointer->next;
+			test_creature(population_pointer, env);
+
+			population_pointer = population_pointer->next;
 		}
 
 		dying_time(population, population_count);
 
+
 		assert(*population_count != 0);
 		if (!last_generation) {
-				mutate_population(*population, mutation_percentage, *population_count, env);
-				mating_time(population, population_count, env);
+			mutate_population(*population, mutation_percentage, *population_count, env);
+			mating_time(population, population_count, env);
 		}
 }
 
@@ -301,18 +303,19 @@ void kill_creature(creature *individual) {
 */
 void test_creature(creature * individual, environment *env) {
 		FILE *fp;
-		char path_buf[BUFSIZE];
+		/* char path_buf[BUFSIZE]; */
 		char result[BUFSIZE];
 		int count_of_results;
 
 		count_of_results = 0;
-		realpath(env->executable, path_buf);
+		/* realpath(env->executable, path_buf); */
 		write_creature_metadata(individual, env);
 
 		/* execute executable from command line */
-		if ((fp = popen(path_buf, "r")) == NULL) {
+		if ((fp = popen(env->executable, "r")) == NULL) {
 				printf("Error opening pipe!\n");
 		}
+
 		/* execute executable from command line */
 		while (fgets(result, BUFSIZE, fp) != NULL) {
 				count_of_results++;
@@ -323,6 +326,7 @@ void test_creature(creature * individual, environment *env) {
 		}
 
 		individual->fitness = atof(result);
+
 		log_results(individual, env);
 		printf("..Testing results: %f \n", individual->fitness); /*Comment tag */
 }
