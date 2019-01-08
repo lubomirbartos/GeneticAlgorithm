@@ -7,16 +7,14 @@
 #define DEFAULT_MUTATION_RATE 5
 #define BUFSIZE 200
 
-
 typedef struct Configuration {
-	char **intervals;
-	char *meta_data_file;
-	char *variable_names;
-	char *executable;
-	char *parameters;
-	int count_of_parameters;
+	char **intervals;        /* intervals for genes                          */
+	char *meta_data_file;    /* name of metadata file                        */
+	char *variable_names;    /* array of one-char variable names             */
+	char *executable;        /* name of executable file                      */
+	char *parameters;        /* array of one-char indicators of type of gene */
+	int count_of_parameters; /* count of genes/variables                     */
 } environment;
-
 
 typedef union Data {
    int binary;
@@ -24,15 +22,12 @@ typedef union Data {
 } gene;
 
 typedef struct Creature {
-	struct Creature *next;
-	struct Creature *previous;
-	char name[5];
-	gene *gene;
-	int first;
-	int last;
-	int is_alpha; /*fittest of them all, the chosen one, invulnerable until fitter creature appears*/
-	float fitness;
+	struct Creature *next;     /* pointer to next creature in list              */
+	struct Creature *previous; /* pointer to previous creature in list          */
+	gene *gene;                /* array of genes                                */
+	int first;                 /* boolean value, 1 if creature is first in list */
+	int last;                  /* boolean value, 1 if creature is last in list  */
+	int is_alpha;              /* fittest of them all, the chosen one           */
+	float fitness;             /* fitness of creature                           */
 } creature;
-
-
 #endif
