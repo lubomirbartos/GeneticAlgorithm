@@ -8,6 +8,8 @@
 #include "config.h"
 #include "nature.h"
 
+
+
 /* Stores configuration from metadata file to environment.
 *
 * parameter (char *)         population pointer to population
@@ -31,13 +33,13 @@ void get_environment(char* file_name, environment **env) {
     int variable_flag;
 
     variable_names = malloc(sizeof(char));
-    if (variable_names == NULL){
+    if (variable_names == NULL) {
         printf("Malloc failed\n");
         return;
     }
 
     parameters = malloc(sizeof(char));
-    if (parameters == NULL){
+    if (parameters == NULL) {
         printf("Malloc failed\n");
         return;
     }
@@ -51,7 +53,7 @@ void get_environment(char* file_name, environment **env) {
     file_pointer      = fopen(file_name, "r");
 
     if (file_pointer == NULL) {
-        printf("File pointer is NULL!\n");
+        printf("Invalid metadata file!\n");
         exit(EXIT_FAILURE);
     }
 
@@ -69,12 +71,12 @@ void get_environment(char* file_name, environment **env) {
         /* alloc memory for intervals */
         if (intervals) {
             intervals = realloc(intervals, sizeof(*intervals) * (param_count+1));
-            if (!intervals){
+            if (!intervals) {
                 printf("Realloc failed\n");
             }
         }else {
             intervals = (char**)calloc(param_count, sizeof(char *));
-            if (!intervals){
+            if (!intervals) {
                 printf("Malloc failed\n");
             }
         }
@@ -90,14 +92,14 @@ void get_environment(char* file_name, environment **env) {
                 store_variable_from_line(line, interval, type);
                 type[1]    = '\0';
                 parameters = (char *) realloc(parameters, (param_count + 2) * sizeof(char));
-                if (parameters == NULL){
+                if (parameters == NULL) {
                     printf("Malloc failed\n");
                     return;
                 }
                 parameters[param_count]   = type[0];
                 parameters[param_count+1] = '\0';
                 intervals[param_count]    = malloc(interval_size * sizeof(char));
-                if (intervals[param_count] == NULL){
+                if (intervals[param_count] == NULL) {
                     printf("Malloc failed\n");
                     return;
                 }
@@ -111,7 +113,7 @@ void get_environment(char* file_name, environment **env) {
                   /*              Line with executable file                 */
                   /**********************************************************/
                   executable = malloc(sizeof(char) * strlen(line) + 1);
-                  if (executable == NULL){
+                  if (executable == NULL) {
                       printf("Malloc failed\n");
                       return;
                   }
@@ -123,7 +125,7 @@ void get_environment(char* file_name, environment **env) {
             /* From line with constant, store only name of constant */
             if (variable_flag) {
                 variable_names = realloc(variable_names, (param_count + 1) * sizeof(char));
-                if (variable_names == NULL){
+                if (variable_names == NULL) {
                     printf("Malloc failed\n");
                     return;
                 }
@@ -133,6 +135,7 @@ void get_environment(char* file_name, environment **env) {
                 variable_flag                   = 0;
             }
         }
+
     }
 
     /***************************************************************/
@@ -144,7 +147,7 @@ void get_environment(char* file_name, environment **env) {
     (*env)->parameters          = parameters;
     (*env)->intervals           = intervals;
     (*env)->meta_data_file      = malloc((strlen(file_name) + 1 ) * sizeof(char));
-    if ((*env)->meta_data_file == NULL){
+    if ((*env)->meta_data_file == NULL) {
       printf("Malloc failed\n");
       return;
     }
@@ -181,6 +184,8 @@ void remove_alpha_tags(creature *population) {
   	} while (continue_while);
 }
 
+
+
 /*
 * Returns pointer to last creature in population
 *
@@ -207,24 +212,34 @@ creature *get_last_creature_in_list(creature *population) {
 *
 * returns void
 */
-void log_fittest(creature *population,int generation_number, environment *env){
+void log_fittest(creature *population,int generation_number, environment *env) {
     FILE * file_pointer;
+    FILE * temporary_file_pointer;
 		creature *pointer;
 		creature *fittest;
 		char log[BUFSIZE];
 		int i;
 		int continue_while;
+    float from, to;
+    int first_log;
 
+    first_log = 0;
 		continue_while = 1;
 		pointer        = population;
 		fittest        = population;
-		file_pointer   = fopen("gen.txt", "a");
+		file_pointer   = fopen("gen.txt", "r");
+    temporary_file_pointer = fopen("gen_tmp.txt", "a");
 
-		if (file_pointer == NULL) {
-  			/* Unable to open file hence exit */
-  			printf("Unable to open file.\n");
-  			exit(0);
-		}
+    if (file_pointer == NULL) {
+        /* Unable to open file hence exit */
+        first_log = 1; /*file is not made yet*/
+    }
+
+    if (temporary_file_pointer == NULL) {
+        /* Unable to open file hence exit */
+        printf("Unable to open gen_tmp file.\n");
+        exit(0);
+    }
 
     /* find fittest creature */
 		do {
@@ -244,27 +259,43 @@ void log_fittest(creature *population,int generation_number, environment *env){
 
 		printf("..Alpha creature has fitness:\t\t%f  \n\n", fittest->fitness); /*Comment tag */
 
-		sprintf(log, "--- GENERATION %d ---\n", generation_number);
-		fputs(log, file_pointer);
+		sprintf(log, "--- GENERATION %d ---\n", generation_number + 1);
+		fputs(log, temporary_file_pointer);
 		memset(log, 0, sizeof log);
 
-		sprintf(log, "%f\n", fittest->fitness);
-		fputs(log, file_pointer);
+		sprintf(log, "%.3f\n", fittest->fitness);
+		fputs(log, temporary_file_pointer);
 		memset(log, 0, sizeof log);
 
 		for (i = 0; i < env->count_of_parameters; i++) {
+        sscanf(env->intervals[i], "%f,%f", &from, &to);
   			if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
-    				sprintf(log, "%c=%d#(%s);Z\n", (char) (65+i), fittest->gene[i].binary, env->intervals[i]);
-    				fputs(log, file_pointer);
+            sprintf(log, "%c=%d#(%d,%d);Z\n", env->variable_names[i], fittest->gene[i].binary, (int) from, (int) to);
+    				fputs(log, temporary_file_pointer);
     				memset(log, 0, sizeof log);
   			} else {
-    				sprintf(log, "%c=%f#(%s);R\n", (char) (65+i), fittest->gene[i].real, env->intervals[i]);
-    				fputs(log, file_pointer);
+            sprintf(log, "%c=%.2f#(%.1f,%.1f);R\n", env->variable_names[i], fittest->gene[i].real, from, to);
+    				fputs(log, temporary_file_pointer);
     				memset(log, 0, sizeof log);
   			}
 		}
-		fputs("\n", file_pointer);
-		fclose(file_pointer);
+		fputs("\n", temporary_file_pointer);
+
+
+    if (!first_log) {
+      while ((fgets(log, BUFSIZE, file_pointer)) != NULL) {
+        fputs(log, temporary_file_pointer);
+        memset(log, 0, sizeof log);
+      }
+    fclose(file_pointer);
+    }
+
+    fclose(temporary_file_pointer);
+
+
+    remove("gen.txt");
+
+    rename("gen_tmp.txt", "gen.txt");
 }
 
 /*
@@ -275,26 +306,28 @@ void log_fittest(creature *population,int generation_number, environment *env){
 *
 * returns void
 */
-void log_results(creature * individual, environment * env){
+void log_results(creature * individual, environment * env) {
     FILE * file_pointer;
   	char log[BUFSIZE];
   	int i;
+    float from, to;
 
   	file_pointer = fopen("val.txt", "a");
   	if (file_pointer == NULL) {
     		printf("\nUnable to open file.\n");
     		exit(0);
   	}
-  	sprintf(log, "%f\n", individual->fitness);
+  	sprintf(log, "%.3f\n", individual->fitness);
   	fputs(log, file_pointer);
   	memset(log, 0, sizeof log);
 
     /* Go through every gene and print it */
   	for (i = 0; i < env->count_of_parameters; i++) {
-    		if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
-      			sprintf(log, "%c=%d#(%s);Z\n", env->variable_names[i], individual->gene[i].binary, env->intervals[i]);
-    		} else {
-      			sprintf(log, "%c=%f#(%s);R\n", env->variable_names[i], individual->gene[i].real, env->intervals[i]);
+        sscanf(env->intervals[i], "%f,%f", &from, &to);
+        if (env->parameters[i] == VARIABLE_TYPE_INTEGER) {
+            sprintf(log, "%c=%d#(%d,%d);Z\n", env->variable_names[i], individual->gene[i].binary, (int) from, (int) to);
+        } else {
+      			sprintf(log, "%c=%.2f#(%.1f,%.1f);R\n", env->variable_names[i], individual->gene[i].real, from, to);
     		}
 
     		fputs(log, file_pointer);
@@ -313,7 +346,7 @@ void log_results(creature * individual, environment * env){
 *
 * returns void
 */
-void print_population(creature *population){
+void print_population(creature *population) {
   	creature *pointer;
   	int continue_while;
   	int count;
@@ -324,7 +357,7 @@ void print_population(creature *population){
   	count          = 0;
     pointer        = population;
 
-  		do  {
+  		do {
     			printf("\nCreature \t  %d \n", count); /*Comment tag */
     			printf("\t\t fitness %f \n", pointer->fitness); /*Comment tag */
     			printf("\t\t gene real %f \n", pointer->gene[0].real); /*Comment tag */
@@ -347,7 +380,7 @@ void print_population(creature *population){
 *
 * returns void
 */
-void get_average_fitness(creature *population, int population_count, float *average_fitness){
+void get_average_fitness(creature *population, int population_count, float *average_fitness) {
     creature *pointer;
   	float sum;
   	int i;
@@ -423,7 +456,7 @@ int get_valuable_creature_index(creature *population, int last_creature_index) {
 *
 * returns void
 */
-void write_creature_metadata(creature *creature, environment *env){
+void write_creature_metadata(creature *creature, environment *env) {
     FILE * meta_data_file_pointer;
     FILE * temporary_file_pointer;
     char variable_name[BUFSIZE];
@@ -452,6 +485,8 @@ void write_creature_metadata(creature *creature, environment *env){
         exit(0);
     }
 
+    memset(buffer, 0, sizeof buffer);
+
     /*
     * Read line from source file and write to destination
     * file after modifying given line according to creature's gene.
@@ -466,6 +501,8 @@ void write_creature_metadata(creature *creature, environment *env){
             /* Overwrite variable */
             /* Get type and interval from environment configuration */
             type = env->parameters[variable_count];
+            memset(interval, 0, sizeof interval);
+
             strcpy(interval, env->intervals[variable_count]);
 
             memset(tmp, 0, sizeof tmp);
@@ -537,7 +574,7 @@ void store_variable_from_line(char *line, char *interval, char *type) {
     int to_int;
 
     /* replace new line character with \0 */
-    if ((new_line_char_position=strchr(line, '\n')) != NULL){
+    if ((new_line_char_position=strchr(line, '\n')) != NULL) {
         *new_line_char_position = '\0';
     }
 
@@ -573,7 +610,7 @@ void get_binary_from_int(int value, char ** result) {
     count_of_bits = sizeof(value) * 8;
 
     (*result) = malloc((count_of_bits+1) * sizeof(char) );
-    if ((*result) == NULL){
+    if ((*result) == NULL) {
         printf("Malloc failed\n");
         return;
     }
@@ -595,7 +632,7 @@ void get_binary_from_int(int value, char ** result) {
 *
 * returns int converted number
 */
-int get_int_from_binary(long bin_value){
+int get_int_from_binary(long bin_value) {
   	int decimal;
     int remainder;
     int i;
@@ -622,7 +659,7 @@ int get_int_from_binary(long bin_value){
 *
 * returns int true/false
 */
-int is_valid_int(char *interval, int value){
+int is_valid_int(char *interval, int value) {
     int from;
     int to;
 
@@ -639,7 +676,7 @@ int is_valid_int(char *interval, int value){
 *
 * returns int true/false
 */
-int is_valid_float(char *interval, float value){
+int is_valid_float(char *interval, float value) {
     float from;
     float to;
 

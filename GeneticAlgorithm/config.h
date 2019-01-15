@@ -2,6 +2,7 @@
 #define CONFIG_H
 #include "structures.h"
 
+
 creature *get_last_creature_in_list (creature *population);
 creature *get_creature_by_number(creature *population, int index);
 

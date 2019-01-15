@@ -3,9 +3,11 @@
 
 #define VARIABLE_TYPE_INTEGER 'Z'
 #define VARIABLE_TYPE_REAL 'R'
-#define POPULATION_LIMIT 100
+#define POPULATION_LIMIT 40
 #define DEFAULT_MUTATION_RATE 5
 #define BUFSIZE 200
+
+
 
 typedef struct Configuration {
 	char **intervals;        /* intervals for genes                          */

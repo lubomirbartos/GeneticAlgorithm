@@ -26,9 +26,9 @@ void evolve(creature **population, int *population_count, int mutation_percentag
 		int i;
 		creature *population_pointer;
 
-		printf("\n*******************************************\n"); /*Comment tag */
-		printf("****** GETTING FITNESS FOR CREATURES ******\n"); /*Comment tag */
-		printf("*******************************************\n\n"); /*Comment tag */
+		/*printf("\n*******************************************\n"); Comment tag */
+		/*printf("****** GETTING FITNESS FOR CREATURES ******\n"); Comment tag */
+		/*printf("*******************************************\n\n"); Comment tag */
 
 		population_pointer = *population;
 
@@ -58,7 +58,7 @@ void evolve(creature **population, int *population_count, int mutation_percentag
 * return void
 */
 void life(int count_of_generations, int mutation_percentage, environment *env) {
-	  creature *population;
+	    creature *population;
 		int generation_number;
 		int population_count;
 		int last_generation;
@@ -72,17 +72,22 @@ void life(int count_of_generations, int mutation_percentage, environment *env) {
 				if (generation_number == (count_of_generations - 1)) {
 						last_generation = 1;
 				}
-				printf("\n\n ..........Starting generation %d..........\n", generation_number); /*Comment tag */
+				printf(" ..........Starting generation %d..........\n", generation_number); /*Comment tag */
 
 				evolve(&population, &population_count, mutation_percentage, env, last_generation);
 				remove_alpha_tags(population);
 				log_fittest(population, generation_number, env);
 
-				printf("\n\n ...........Ending generation %d...........\n\n", generation_number); /*Comment tag */
+				printf(" ...........Ending generation %d...........\n", generation_number); /*Comment tag */
 		}
+
 
 		kill_all(population);
 }
+
+
+
+
 
 /*
 * Kills creatures that have below average fitness
@@ -97,18 +102,18 @@ void dying_time(creature **population, int *population_count) {
 		creature *pointer;
 		creature *weakling;
 
-		printf("\n*******************************************\n"); /*Comment tag */
-		printf("*************** DYING TIME ****************\n"); /*Comment tag */
-		printf("*******************************************\n\n"); /*Comment tag */
+		/*printf("\n*******************************************\n"); Comment tag */
+		/*printf("*************** DYING TIME ****************\n"); Comment tag */
+		/*printf("*******************************************\n\n"); Comment tag */
 
 		pointer = *population;
 		get_average_fitness(*population, *population_count, &average_fitness);
 
 		printf("..Average fitness of population:     \t%f \n", average_fitness); /*Comment tag */
-		printf("..Population count before the purge: \t%d \n\n", *population_count); /*Comment tag */
+		/*printf("..Population count before the purge: \t%d \n\n", *population_count); Comment tag */
 
 		while(pointer) {
-				if(pointer->fitness < average_fitness && *population_count > 10 ){
+				if(pointer->fitness < average_fitness && *population_count > 10 ) {
 						if (!pointer->previous) { /*first member, we need to change population pointer */
 								*population = pointer->next;
 						}
@@ -122,7 +127,7 @@ void dying_time(creature **population, int *population_count) {
 				}
 		}
 
-		printf("\n..Population count after the purge:  \t%d \n", *population_count); /*Comment tag */
+		/*printf("\n..Population count after the purge:  \t%d \n", *population_count); Comment tag */
 }
 
 
@@ -135,7 +140,7 @@ void dying_time(creature **population, int *population_count) {
 *
 * return void
 */
-void create_initial_population(creature **population, int *count_of_creatures, environment *env){
+void create_initial_population(creature **population, int *count_of_creatures, environment *env) {
 		int i;
 		creature *creation;
 		creature *last;
@@ -170,14 +175,14 @@ creature *create_creature(environment *env) {
 		gene *gene;
 
 		gene = calloc(env->count_of_parameters, sizeof(gene));
-		if (gene == NULL){
+		if (gene == NULL) {
 				printf("Malloc failed\n");
 				return NULL;
 		}
 
 		create_random_gene(gene, env);
 		creation = calloc (1, sizeof (creature));
-		if (creation == NULL){
+		if (creation == NULL) {
 				printf("Malloc failed\n");
 				return NULL;
 		}
@@ -205,7 +210,7 @@ creature *create_creature(environment *env) {
 *
 * return void
 */
-void create_random_gene(gene *gene, environment *env){
+void create_random_gene(gene *gene, environment *env) {
 		int i, r;
 		float from, to;
 
@@ -216,7 +221,7 @@ void create_random_gene(gene *gene, environment *env){
 				if (*(env->parameters + i) == VARIABLE_TYPE_INTEGER) {
 						r %= (int)( to - from );
 						gene[i].binary = (int)from + r;
-				} else if (*(env->parameters + i) == VARIABLE_TYPE_REAL){
+				} else if (*(env->parameters + i) == VARIABLE_TYPE_REAL) {
 						r %= (int)( to - from );
 						gene[i].real  = from + (float) r;
 						gene[i].real += (float)rand()/(float)(RAND_MAX);
@@ -238,9 +243,9 @@ void mating_time(creature **population, int *population_count, environment *env)
 		int mother_index, father_index;
 		int last_creature_index;
 
-		printf("\n*******************************************\n"); /*Comment tag */
-		printf("************** MATING TIME ****************\n"); /*Comment tag */
-		printf("*******************************************\n\n"); /*Comment tag */
+		/*printf("\n*******************************************\n"); Comment tag */
+		/*printf("************** MATING TIME ****************\n"); Comment tag */
+		/*printf("*******************************************\n\n"); Comment tag */
 
 		last_creature_index = *population_count -1; /*from 0 until last adult */
 		mother_index        = 0;
@@ -285,7 +290,7 @@ void kill_creature(creature *individual) {
 				individual->next->previous = individual->previous;
 		}
 
-		printf("..Creature with fitness\t %f \tkilled!\n", individual->fitness); /*Comment tag */
+		/*printf("..Creature with fitness\t %f \tkilled!\n", individual->fitness); Comment tag */
 
 		free(individual->gene);
 		free(individual);
@@ -303,32 +308,48 @@ void kill_creature(creature *individual) {
 */
 void test_creature(creature * individual, environment *env) {
 		FILE *fp;
-		/* char path_buf[BUFSIZE]; */
+		char path_buf[PATH_MAX];
 		char result[BUFSIZE];
 		int count_of_results;
 
-		count_of_results = 0;
-		/* realpath(env->executable, path_buf); */
 		write_creature_metadata(individual, env);
+		memset(path_buf, 0, sizeof path_buf);
 
-		/* execute executable from command line */
-		if ((fp = popen(env->executable, "r")) == NULL) {
-				printf("Error opening pipe!\n");
-		}
+		count_of_results = 0;
 
+		/* Working with command line is different for linux and windows */
+		#ifdef __linux__ 
+		    realpath(env->executable, path_buf);
+
+			/* execute executable from command line, with linux we need absolute path */
+			if ((fp = popen(path_buf, "r")) == NULL) {
+					printf("Error opening pipe!\n");
+			}
+
+		#elif _WIN32
+			/* execute executable from command line */
+			if ((fp = popen(env->executable, "r")) == NULL) {
+					printf("Error opening pipe!\n");
+			}
+
+		#endif 
+
+		memset(result, 0, sizeof result);
 		/* execute executable from command line */
 		while (fgets(result, BUFSIZE, fp) != NULL) {
 				count_of_results++;
 		}
 
-		if(pclose(fp))  {
+
+		if(pclose(fp)) {
 				printf("Command not found or exited with error status\n");
 		}
 
 		individual->fitness = atof(result);
+		memset(result, 0, sizeof result);
 
 		log_results(individual, env);
-		printf("..Testing results: %f \n", individual->fitness); /*Comment tag */
+		/*printf("..Testing results: %f \n", individual->fitness); Comment tag */
 }
 
 /*
@@ -342,11 +363,12 @@ void test_creature(creature * individual, environment *env) {
 *
 * return void
 */
-void breed_offspring(creature *population, int mother_index, int father_index, environment *env){
+void breed_offspring(creature *population, int mother_index, int father_index, environment *env) {
 		gene *offspring_gene;
 		gene *father_gene;
 		gene *mother_gene;
 		creature *last_creature;
+		creature *offspring;
 
 		offspring_gene = malloc(env->count_of_parameters * sizeof(gene));
 		if (!offspring_gene) {
@@ -362,30 +384,32 @@ void breed_offspring(creature *population, int mother_index, int father_index, e
 
 		cross_gene(mother_gene, father_gene, &offspring_gene, env);
 
-		last_creature->next = (creature*) malloc(sizeof(creature));
-		if (last_creature->next == NULL){
+
+		offspring = (creature*) malloc(sizeof(creature));
+		if (offspring == NULL) {
 				printf("Malloc failed\n");
 				return;
 		}
 
 		/* Append new offspring to end of list */
-		last_creature->next->previous = last_creature;
-		last_creature->next->next     = NULL;
-		last_creature->next->fitness  = FLT_MIN;
-		last_creature->next->is_alpha = 0;
-		last_creature->last           = 0;
-		last_creature->next->last     = 1;
-		last_creature->next->first    = 0;
-		last_creature->next->gene     = (gene*) calloc(env->count_of_parameters, sizeof(gene));
-
-		if (last_creature->next->gene == NULL){
+		offspring->previous = last_creature;
+		offspring->next     = NULL;
+		offspring->fitness  = FLT_MIN; /* untested creature has by default lowest possible fitness */
+		offspring->is_alpha = 0;       /* newborns are not alphas */
+		offspring->last     = 1;       /* creature is currently last in list */
+		offspring->first    = 0;
+		offspring->gene     = (gene*) calloc(env->count_of_parameters, sizeof(gene));
+		if (offspring->gene == NULL) {
 				printf("Malloc failed\n");
 				return;
 		}
 
-		copy_gene(last_creature->next->gene, offspring_gene, env);
+		copy_gene(offspring->gene, offspring_gene, env);
 
-		printf("..Parents \t%d and %d \tcreated offspring!\n", father_index, mother_index); /*Comment tag */
+		last_creature->next = offspring;
+		last_creature->last = 0;
+
+		/*printf("..Parents \t%d and %d \tcreated offspring!\n", father_index, mother_index); Comment tag */
 
 		free(offspring_gene);
 		last_creature = NULL;
@@ -400,7 +424,7 @@ void breed_offspring(creature *population, int mother_index, int father_index, e
 *
 * return void
 */
-void copy_gene(gene *to, gene *from, environment *env){
+void copy_gene(gene *to, gene *from, environment *env) {
 		int i;
 
 		/* iterate through gene and copy */
@@ -450,13 +474,13 @@ void kill_all(creature *population) {
 *
 * return void
 */
-void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, environment *env){
+void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, environment *env) {
 	char parameter;
 	int valid_gene; /*like boolean*/
 	int valid_part; /*like boolean*/
 	int i;
 
-	do  {
+	do {
 		valid_gene = 1;
 
 		/* Create new gene from parents' genes by crossing */
@@ -465,7 +489,7 @@ void cross_gene(gene *mother_gene, gene *father_gene, gene **offspring_gene, env
 			if (parameter == VARIABLE_TYPE_INTEGER) {
 					cross_binary_and_append(father_gene[i].binary, mother_gene[i].binary, (*offspring_gene) + i);
 					valid_part = is_valid_int(env->intervals[i], (*offspring_gene)[i].binary);
-			} else if (parameter == VARIABLE_TYPE_REAL){
+			} else if (parameter == VARIABLE_TYPE_REAL) {
 					cross_real_and_append(father_gene[i].real, mother_gene[i].real, (*offspring_gene) + i);
 					valid_part = is_valid_float(env->intervals[i], (*offspring_gene)[i].real);
 			}
@@ -505,7 +529,7 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 		length = strlen(binary_father_gene);
 
 		offspring_gene_binary = malloc(sizeof(char) * length + 1);
-		if (offspring_gene_binary == NULL){
+		if (offspring_gene_binary == NULL) {
 				printf("Malloc failed\n");
 				return;
 		}
@@ -541,18 +565,18 @@ void cross_binary_and_append(int father_gene, int mother_gene, gene *offspring_g
 *
 * return void
 */
-void mutate_population(creature *population, int mutation_percentage, int population_count, environment * env){
+void mutate_population(creature *population, int mutation_percentage, int population_count, environment * env) {
 		creature *individual;
 		int index, i;
 		int count_of_mutants;
 		int fittest;
 
-		count_of_mutants = population_count / mutation_percentage;
+		count_of_mutants = (int) ( (float) population_count * ( (float) mutation_percentage / 100) );
 		fittest          = 0;
 
-		printf("\n*******************************************\n"); /* Comment tag */
-		printf("********* Mutating %d creatures ************\n", count_of_mutants); /* Comment tag */
-		printf("*******************************************\n\n"); /* Comment tag */
+		/* printf("\n*******************************************\n"); Comment tag */
+		/* printf("********* Mutating %d creatures ************\n", count_of_mutants);  Comment tag */
+		/* printf("*******************************************\n\n");  Comment tag */
 
 		for (i = 0; i < count_of_mutants; ) {
 				index      = rand() % population_count;
@@ -574,7 +598,7 @@ void mutate_population(creature *population, int mutation_percentage, int popula
 *
 * return void
 */
-void mutate_creature(creature *individual, environment * env){
+void mutate_creature(creature *individual, environment * env) {
 		int binary_or_real; /* like boolean */
 		int i;
 		int r;
