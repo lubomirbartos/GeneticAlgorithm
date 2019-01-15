@@ -3,6 +3,8 @@
 #define NATURE_H
 #include "structures.h"
 
+
+
 void create_initial_population(creature ** population, int * count_of_creatures, environment * env);
 void cross_binary_and_append(int f_gene, int m_gene, gene * offspring_gene_int);
 void cross_real_and_append(float f_gene, float m_gene, gene * offspring_gene_real);
@@ -19,7 +21,7 @@ void copy_gene(gene * to, gene * from, environment * env);
 void kill_all(creature * population);
 void evolve(creature ** population, int * population_count, int mutation_percentage, environment * env, int last_generation);
 void life(int count_of_generations, int mutation_percentage, environment * env);
-
+void sig_handler(int dummy);
 creature * create_creature(environment * env);
 
 #endif
